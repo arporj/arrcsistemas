@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://arrcsistemas.com.br/sitemap.xml

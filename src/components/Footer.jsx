@@ -14,7 +14,7 @@ const Footer = () => {
         >
           <div className="flex items-center gap-3">
             <img
-              src="https://horizons-cdn.hostinger.com/5781d7fb-b7cc-4bb3-80b5-c52f16421b3b/045c5f7576e02237edd915ee1af176f2.png"
+              src="https://arrcsistemas.com.br/images/logo.png"
               alt="ARRC Sistemas"
               className="h-8 w-auto"
             />

@@ -1,0 +1,65 @@
+.constrular-page {
+  background-color: #10131a;
+  color: #e1e2ec;
+  font-family: 'Inter', sans-serif;
+  background-image:
+    linear-gradient(#44474e 1px, transparent 1px),
+    linear-gradient(90deg, #44474e 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center center;
+}
+
+.constrular-technical-border {
+  border: 1px solid #44474e;
+}
+
+.constrular-btn-primary {
+  background-color: #ffb964;
+  color: #10131a;
+  padding: 1rem 2rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid #ffb964;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+.constrular-btn-primary:hover {
+  background-color: #ffddba;
+}
+
+.constrular-btn-secondary {
+  background-color: transparent;
+  color: #ffb964;
+  padding: 1rem 2rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid #44474e;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: border-color 0.2s ease;
+}
+.constrular-btn-secondary:hover {
+  border-color: #ffb964;
+}
+
+.constrular-card-panel {
+  background-color: rgba(25, 27, 35, 0.8);
+  border: 1px solid #44474e;
+  backdrop-filter: blur(4px);
+}
+
+.constrular-header {
+  opacity: 0.65;
+  transition: opacity 0.3s ease;
+}
+.constrular-header:hover,
+.constrular-header:focus-within {
+  opacity: 1;
+}

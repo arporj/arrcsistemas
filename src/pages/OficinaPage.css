@@ -1,0 +1,15 @@
+.oficina-page {
+  background-color: #121414;
+  color: #e1e3e3;
+  font-family: 'Inter', sans-serif;
+}
+
+.oficina-clip-diagonal {
+  clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
+}
+.oficina-clip-diagonal-reverse {
+  clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
+}
+.oficina-notch-corner {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}

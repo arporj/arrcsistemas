@@ -1,80 +1,66 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 const Hero = () => {
-  const scrollToContact = () => {
-    const element = document.getElementById('contact');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  const scrollToId = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <section id="hero" className="min-h-screen flex items-center justify-center relative overflow-hidden pt-20">
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-purple-600/20 opacity-30"></div>
-      
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-cyan-500/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-600/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
-
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
+    <section id="hero" className="px-5 md:px-20 py-24 md:py-40 relative">
+      <div className="grid grid-cols-12 gap-6">
+        <div className="col-span-12 md:col-span-10 md:col-start-2">
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="mb-6"
+            className="font-['JetBrains_Mono'] text-[10px] text-[#d1c79d] mb-8 tracking-[0.2em] uppercase"
           >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-effect text-cyan-400 text-sm font-medium">
-              <Sparkles size={16} />
-              Inovação em Tecnologia
-            </span>
-          </motion.div>
+            Engenharia Digital de Alta Performance
+          </motion.p>
 
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-7xl font-bold mb-6 leading-tight"
+            transition={{ duration: 0.8, delay: 0.15 }}
+            className="font-['Anybody'] font-extrabold text-[clamp(2.75rem,9vw,7.5rem)] leading-[0.9] md:leading-[0.92] tracking-[-0.04em] text-[#e2e2e2] mb-12 max-w-[15ch] uppercase"
           >
-            Transforme seu negócio com{' '}
-            <span className="gradient-text">soluções digitais</span>
+            Sistemas<br />Que<br />Funcionam.
           </motion.h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto"
-          >
-            Desenvolvimento de websites e aplicativos SaaS de alta performance para impulsionar seu crescimento
-          </motion.p>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="md:col-span-6 border-t border-[#d1c79d]/20 pt-8"
+            >
+              <p className="font-['Hanken_Grotesk'] text-lg text-[#ccc6b8] max-w-md">
+                Sites sob medida para padarias, clínicas, oficinas, construtoras e casas de festas. Não construímos apenas interfaces; arquitetamos soluções robustas focadas em conversão e performance.
+              </p>
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Button
-              onClick={scrollToContact}
-              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-6 text-lg rounded-full shadow-lg shadow-cyan-500/50 transition-all"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.15 }}
+              className="md:col-span-4 md:col-start-9 flex flex-col gap-4 mt-8 md:mt-0"
             >
-              Fale Conosco
-              <ArrowRight className="ml-2" size={20} />
-            </Button>
-            
-            <Button
-              onClick={() => window.open('http://www.recebimentosmart.com.br', '_blank')}
-              variant="outline"
-              className="border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-8 py-6 text-lg rounded-full"
-            >
-              Conheça o Recebimento Smart
-            </Button>
-          </motion.div>
+              <button
+                onClick={() => window.open('https://wa.me/5521967621494', '_blank')}
+                className="w-full bg-[#d1c79d] text-[#373013] font-['JetBrains_Mono'] text-[10px] tracking-[0.15em] uppercase px-8 py-4 font-semibold hover:opacity-90 transition-all text-center"
+              >
+                Iniciar Projeto
+              </button>
+              <button
+                onClick={() => scrollToId('exemplos')}
+                className="w-full border border-[#d1c79d]/20 text-[#e2e2e2] font-['JetBrains_Mono'] text-[10px] tracking-[0.15em] uppercase px-8 py-4 arrc-hover-bronze transition-all text-center"
+              >
+                Ver Portfólio
+              </button>
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>

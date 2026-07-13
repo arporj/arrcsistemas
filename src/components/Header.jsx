@@ -1,159 +1,139 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Menu, X, ChevronDown } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, ChevronDown, ArrowUpRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+
+const exemplos = [
+  { label: 'Padaria do Seu Antônio', to: '/exemplos/padaria' },
+  { label: 'Casa de Festas Encanto', to: '/exemplos/casa-de-festas' },
+  { label: 'Constrular', to: '/exemplos/construcao' },
+  { label: 'Odonto Sorriso Rio', to: '/exemplos/odonto' },
+  { label: 'Auto Center Bom Torque', to: '/exemplos/oficina' },
+];
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNavigateAndScroll = (id) => {
+  const scrollToId = (id) => {
     setIsMobileMenuOpen(false);
-    if (location.pathname !== '/') {
-      navigate('/');
-      setTimeout(() => {
-        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-      }, 150); // Aguarda um pouco para a página inicial carregar antes de rolar
-    } else {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-    }
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const menuItems = [
-    { label: 'Início', id: 'hero' },
-    { label: 'Serviços', id: 'services' },
-    { label: 'Sobre', id: 'about' },
-    { label: 'Contato', id: 'contact' },
-  ];
-
   return (
-    <motion.header
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'glass-effect shadow-lg' : 'bg-transparent'
+    <motion.nav
+      initial={{ y: -40, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6 }}
+      className={`fixed top-0 w-full z-40 border-b border-[#d1c79d]/20 transition-colors duration-300 ${
+        isScrolled ? 'bg-[#121414]/90 backdrop-blur-xl' : 'bg-[#121414]/80 backdrop-blur-xl'
       }`}
     >
-      <nav className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-3 cursor-pointer" onClick={() => handleNavigateAndScroll('hero')}>
-            <motion.img
-              whileHover={{ scale: 1.05 }}
-              src="https://arrcsistemas.com.br/images/logo.png"
-              alt="ARRC Sistemas Logo"
-              className="h-10 w-auto"
-            />
-          </Link>
+      <div className="flex justify-between items-center px-5 md:px-20 py-6 w-full max-w-full mx-auto">
+        <button
+          onClick={() => scrollToId('hero')}
+          className="flex items-center gap-2.5 cursor-pointer active:scale-95 transition-transform hover:opacity-80 duration-300"
+        >
+          <img src="/images/logosimples.png" alt="" className="h-7 w-7 md:h-8 md:w-8" />
+          <span className="font-['Anybody'] text-2xl md:text-3xl font-extrabold tracking-tighter text-[#e2e2e2] uppercase">
+            ARRC Sistemas
+          </span>
+        </button>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavigateAndScroll(item.id)}
-                className="text-gray-300 hover:text-cyan-400 transition-colors font-medium"
-              >
-                {item.label}
+        <div className="hidden md:flex items-center gap-8">
+          <button
+            onClick={() => scrollToId('hero')}
+            className="font-['JetBrains_Mono'] text-[10px] tracking-[0.15em] uppercase text-[#d1c79d] font-bold border-b border-[#d1c79d] pb-1 hover:opacity-80 transition-opacity"
+          >
+            Início
+          </button>
+          <button
+            onClick={() => scrollToId('servicos')}
+            className="font-['JetBrains_Mono'] text-[10px] tracking-[0.15em] uppercase text-[#ccc6b8] hover:text-[#d1c79d] transition-colors"
+          >
+            Serviços
+          </button>
+
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="flex items-center gap-1 font-['JetBrains_Mono'] text-[10px] tracking-[0.15em] uppercase text-[#ccc6b8] hover:text-[#d1c79d] transition-colors outline-none">
+                Exemplos <ChevronDown size={12} />
               </button>
-            ))}
-            
-            {/* Dropdown Menu */}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button className="flex items-center text-gray-300 hover:text-cyan-400 transition-colors font-medium">
-                  Exemplos <ChevronDown size={16} className="ml-1" />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content 
-                className="bg-gray-800/80 backdrop-blur-md text-white p-2 rounded-lg shadow-lg mt-2 border border-gray-700 min-w-[220px]" 
-                sideOffset={5}
-              >
-                <DropdownMenu.Item asChild>
-                  <Link to="/exemplos/oficina" className="block px-3 py-2 text-sm hover:bg-cyan-500/20 rounded-md cursor-pointer outline-none">
-                    Oficina Mecânica
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content
+              className="bg-[#1a1c1c] border border-[#d1c79d]/20 shadow-2xl mt-3 min-w-[240px] py-2"
+              sideOffset={5}
+            >
+              {exemplos.map((ex) => (
+                <DropdownMenu.Item key={ex.to} asChild>
+                  <Link
+                    to={ex.to}
+                    className="flex items-center justify-between px-4 py-3 font-['Hanken_Grotesk'] text-sm text-[#e2e2e2] hover:bg-[#d1c79d]/10 hover:text-[#d1c79d] transition-colors cursor-pointer outline-none"
+                  >
+                    {ex.label}
+                    <ArrowUpRight size={14} />
                   </Link>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item asChild>
-                  <Link to="/exemplos/padaria" className="block px-3 py-2 text-sm hover:bg-cyan-500/20 rounded-md cursor-pointer outline-none">
-                    Padaria
-                  </Link>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item asChild>
-                  <Link to="/exemplos/casa-de-festas" className="block px-3 py-2 text-sm hover:bg-cyan-500/20 rounded-md cursor-pointer outline-none">
-                    Casa de Festas
-                  </Link>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item asChild>
-                  <Link to="/exemplos/construcao" className="block px-3 py-2 text-sm hover:bg-cyan-500/20 rounded-md cursor-pointer outline-none">
-                    Material de Construção
-                  </Link>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item asChild>
-                  <Link to="/exemplos/odonto" className="block px-3 py-2 text-sm hover:bg-cyan-500/20 rounded-md cursor-pointer outline-none">
-                    Clínica de Odontologia
-                  </Link>
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
-          </div>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
 
           <button
-            className="md:hidden text-white"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => scrollToId('contato')}
+            className="font-['JetBrains_Mono'] text-[10px] tracking-[0.15em] uppercase text-[#ccc6b8] hover:text-[#d1c79d] transition-colors"
           >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            Contato
           </button>
         </div>
 
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="md:hidden mt-4 glass-effect rounded-lg p-4"
-          >
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavigateAndScroll(item.id)}
-                className="block w-full text-left py-3 text-gray-300 hover:text-cyan-400 transition-colors"
-              >
-                {item.label}
-              </button>
-            ))}
-            <div className="border-t border-gray-700 my-2"></div>
-            <h3 className="text-gray-400 font-bold px-1 py-2">Exemplos</h3>
-            <Link to="/exemplos/oficina" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left py-3 text-gray-300 hover:text-cyan-400 transition-colors">
-              Oficina Mecânica
+        <button
+          onClick={() => window.open('https://wa.me/5521967621494', '_blank')}
+          className="hidden md:block bg-[#d1c79d] text-[#373013] font-['JetBrains_Mono'] text-[10px] tracking-[0.15em] uppercase px-6 py-3 font-semibold hover:opacity-80 transition-all active:scale-95"
+        >
+          Fale Conosco
+        </button>
+
+        <button
+          className="md:hidden text-[#d1c79d]"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Abrir menu"
+        >
+          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {isMobileMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="md:hidden bg-[#121414] border-t border-[#d1c79d]/20 px-5 py-6"
+        >
+          <button onClick={() => scrollToId('hero')} className="block w-full text-left py-3 font-['JetBrains_Mono'] text-xs uppercase tracking-widest text-[#d1c79d]">Início</button>
+          <button onClick={() => scrollToId('servicos')} className="block w-full text-left py-3 font-['JetBrains_Mono'] text-xs uppercase tracking-widest text-[#ccc6b8]">Serviços</button>
+          <button onClick={() => scrollToId('contato')} className="block w-full text-left py-3 font-['JetBrains_Mono'] text-xs uppercase tracking-widest text-[#ccc6b8]">Contato</button>
+          <div className="border-t border-[#d1c79d]/10 my-3"></div>
+          <p className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[#ccc6b8]/60 py-2">Exemplos</p>
+          {exemplos.map((ex) => (
+            <Link
+              key={ex.to}
+              to={ex.to}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block w-full text-left py-3 font-['Hanken_Grotesk'] text-sm text-[#e2e2e2]"
+            >
+              {ex.label}
             </Link>
-            <Link to="/exemplos/padaria" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left py-3 text-gray-300 hover:text-cyan-400 transition-colors">
-              Padaria
-            </Link>
-            <Link to="/exemplos/casa-de-festas" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left py-3 text-gray-300 hover:text-cyan-400 transition-colors">
-              Casa de Festas
-            </Link>
-            <Link to="/exemplos/construcao" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left py-3 text-gray-300 hover:text-cyan-400 transition-colors">
-              Material de Construção
-            </Link>
-            <Link to="/exemplos/odonto" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left py-3 text-gray-300 hover:text-cyan-400 transition-colors">
-              Clínica de Odontologia
-            </Link>
-          </motion.div>
-        )}
-      </nav>
-    </motion.header>
+          ))}
+        </motion.div>
+      )}
+    </motion.nav>
   );
 };
 

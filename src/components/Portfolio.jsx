@@ -62,13 +62,16 @@ const Portfolio = () => {
     <section id="exemplos" className="px-5 md:px-20 py-24 border-t border-[#d1c79d]/20">
       <div className="grid grid-cols-12 gap-6 mb-16">
         <div className="col-span-12 md:col-span-4">
+          <h3 className="font-['JetBrains_Mono'] text-[10px] text-[#d1c79d] uppercase tracking-[0.15em] mb-4">
+            Sites de Demonstração
+          </h3>
           <h2 className="font-['Anybody'] font-extrabold text-4xl md:text-[48px] md:leading-[56px] text-[#e2e2e2]">
             Não é só bonito.<br /><span className="text-[#d1c79d]">Funciona.</span>
           </h2>
         </div>
         <div className="col-span-12 md:col-span-6 md:col-start-7 flex items-end">
           <p className="font-['Hanken_Grotesk'] text-lg text-[#ccc6b8]">
-            Casos reais de engenharia digital aplicada a diferentes setores do mercado.
+            Sites fictícios, criados para mostrar como fica um website profissional em diferentes tipos de negócio.
           </p>
         </div>
       </div>
@@ -86,6 +89,9 @@ const Portfolio = () => {
           >
             <Link to={c.to}>
               <div className="portfolio-frame relative overflow-hidden mb-6 border border-[#d1c79d]/10 transition-colors duration-500">
+                <span className="absolute top-3 right-3 z-20 bg-[#121414]/80 backdrop-blur-sm border border-[#d1c79d]/40 text-[#d1c79d] font-['JetBrains_Mono'] text-[9px] uppercase tracking-[0.15em] px-2.5 py-1 rounded-sm">
+                  Exemplo
+                </span>
                 <div className={`${c.height} relative`}>
                   <div
                     className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-color"

@@ -33,7 +33,7 @@ const Hero = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="md:col-span-6 border-t border-[#d1c79d]/20 pt-8"
+              className="md:col-span-8 border-t border-[#d1c79d]/20 pt-8"
             >
               <p className="font-['Hanken_Grotesk'] text-lg text-[#ccc6b8] max-w-md">
                 Sites sob medida para padarias, clínicas, oficinas, construtoras e casas de festas. Não construímos apenas interfaces; arquitetamos soluções robustas focadas em conversão e performance.

@@ -18,8 +18,8 @@ const HomePage = () => {
       <Header />
       <main className="flex-grow pt-32 relative z-10">
         <Hero />
-        <Portfolio />
         <ServicesShowcase />
+        <Portfolio />
       </main>
       <Footer />
     </div>

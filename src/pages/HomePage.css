@@ -45,3 +45,7 @@
 .portfolio-card:hover .portfolio-arrow {
   color: var(--accent);
 }
+
+.destaque-card:hover .destaque-frame {
+  border-color: #d1c79d;
+}

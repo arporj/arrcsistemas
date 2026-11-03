@@ -1,267 +1,532 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Send, Settings, CarFront, RadioTower, Zap, Fuel, Target, Menu, X } from 'lucide-react';
+import {
+  animate,
+  motion,
+  useInView,
+  useMotionTemplate,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+  useVelocity,
+} from 'framer-motion';
+import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUpRight, Check, Eye, Menu, X } from 'lucide-react';
+import EngrenagensCanvas from '@/components/oficina/EngrenagensCanvas';
+import ArteServico from '@/components/oficina/ArteServico';
+import Torquimetro from '@/components/oficina/Torquimetro';
 import './OficinaPage.css';
 
 const servicos = [
-  { n: '01', icon: Settings, title: 'Revisão Completa', desc: 'INSPEÇÃO DIAGNÓSTICA. ESCANEAMENTO DIGITAL DE 40 PONTOS. AFERIÇÃO DE TORQUE DE ACORDO COM MANUAL DO FABRICANTE.', accent: true },
-  { n: '02', icon: CarFront, title: 'Sistema de Freios', desc: 'TROCA DE PASTILHAS HIGH-TEMP. SANGRIA DE FLUIDO ABS/EBD. RETÍFICA DE DISCOS E AVALIAÇÃO DE PINÇAS.' },
-  { n: '03', icon: RadioTower, title: 'Suspensão & Direção', desc: 'ALINHAMENTO 3D. BALANCEAMENTO DINÂMICO. INSPEÇÃO DE AMORTECEDORES, BUCHAS E TERMINAIS DE DIREÇÃO.' },
-  { n: '04', icon: Zap, title: 'Parte Elétrica', desc: 'DIAGNÓSTICO ELETRÔNICO AVANÇADO. REPARO DE CHICOTES. AVALIAÇÃO DE BATERIA, ALTERNADOR E MÓDULOS DE CONTROLE (ECU).' },
+  { n: '01', arte: 'revisao', titulo: 'Revisão completa', texto: 'Olhamos 40 pontos do carro com scanner e seguimos o aperto indicado no manual do fabricante. Você recebe a lista do que está bom e do que precisa de atenção.' },
+  { n: '02', arte: 'freios', titulo: 'Freios', texto: 'Troca de pastilhas, sangria do fluido, retífica de discos e avaliação das pinças, para o pedal voltar a responder como deve.' },
+  { n: '03', arte: 'suspensao', titulo: 'Suspensão e direção', texto: 'Alinhamento 3D, balanceamento e inspeção de amortecedores, buchas e terminais. O carro para de puxar e de bater em lombada.' },
+  { n: '04', arte: 'eletrica', titulo: 'Parte elétrica', texto: 'Diagnóstico eletrônico, reparo de chicotes e teste de bateria, alternador e módulos, para achar a causa da luz acesa no painel.' },
+  { n: '05', arte: 'oleo', titulo: 'Troca de óleo', texto: 'Óleo sintético e filtros originais, com limpeza do motor quando necessária e análise do óleo usado.' },
 ];
 
-const diferenciais = [
-  { title: '99.9% Precisão de Torque', desc: 'Ferramental aferido digitalmente para garantir que cada parafuso receba exatamente a tensão especificada pela fábrica.', active: true },
-  { title: 'Diagnóstico Baseado em Dados', desc: "Não usamos 'achismo'. Conectamos seu veículo a scanners de nível concessionária para leitura precisa de códigos de falha e telemetria." },
-  { title: 'Transparência Total', desc: 'Acesso direto ao mecânico responsável. Relatórios técnicos detalhados com evidências fotográficas de componentes desgastados.' },
+const laudo = [
+  { item: 'Pastilhas dianteiras', leitura: '7,2 mm', situacao: 'Em dia', nivel: 'ok' },
+  { item: 'Fluido de freio', leitura: '3,1% de água', situacao: 'Trocar agora', nivel: 'trocar' },
+  { item: 'Bateria', leitura: '12,4 V', situacao: 'Observar', nivel: 'observar' },
+  { item: 'Amortecedores', leitura: '68% de carga', situacao: 'Em dia', nivel: 'ok' },
+  { item: 'Óleo do motor', leitura: '6.200 km de uso', situacao: 'Em dia', nivel: 'ok' },
 ];
 
-const scrollToId = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+const iconesSituacao = { ok: Check, trocar: AlertTriangle, observar: Eye };
 
-const OficinaPage = () => {
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ nome: '', whatsapp: '', veiculo: '', tipo: 'REVISÃO PROGRAMADA', descricao: '' });
-  const [mobileOpen, setMobileOpen] = useState(false);
+const numeros = [
+  { valor: 40, prefixo: '', titulo: 'pontos verificados', texto: 'em cada revisão completa, com scanner de nível de concessionária.' },
+  { valor: 15, prefixo: '+', titulo: 'anos de oficina', texto: 'trabalhando em carros de passeio e em preparação para pista.' },
+  { valor: 15, prefixo: '<', titulo: 'minutos para responder', texto: 'depois que você envia o pedido de orçamento.' },
+];
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
+const tiposServico = ['Revisão programada', 'Diagnóstico de falha', 'Manutenção corretiva', 'Melhoria de desempenho'];
+const faixaServicos = ['Revisão', 'Freios', 'Suspensão', 'Elétrica', 'Óleo', 'Diagnóstico'];
+const manifesto = 'Mecânico bom não adivinha. Ele mede, mostra a peça e explica o que precisa ser feito agora e o que pode esperar.';
+const formularioVazio = { nome: '', whatsapp: '', veiculo: '', tipo: tiposServico[0], descricao: '' };
+
+const irPara = (id) => (e) => {
+  e.preventDefault();
+  const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.getElementById(id)?.scrollIntoView({ behavior: reduzido ? 'auto' : 'smooth' });
+};
+
+const mascararTelefone = (valor) => {
+  const d = valor.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
+const validarFormulario = ({ nome, whatsapp, veiculo }) => {
+  const erros = {};
+  if (nome.trim().length < 2) erros.nome = 'Escreva seu nome para sabermos com quem falar.';
+  const digitos = whatsapp.replace(/\D/g, '').length;
+  if (digitos < 10) erros.whatsapp = 'Confira o número: faltam dígitos. Exemplo: (22) 99999-9999.';
+  if (veiculo.trim().length < 2) erros.veiculo = 'Conte qual é o carro. Exemplo: Onix 2019.';
+  return erros;
+};
+
+const useTelaLarga = () => {
+  const [larga, setLarga] = useState(() => window.matchMedia('(min-width: 900px)').matches);
+  useEffect(() => {
+    const consulta = window.matchMedia('(min-width: 900px)');
+    const aoMudar = (e) => setLarga(e.matches);
+    consulta.addEventListener('change', aoMudar);
+    return () => consulta.removeEventListener('change', aoMudar);
+  }, []);
+  return larga;
+};
+
+const moverHolofote = (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty('--of-x', `${e.clientX - r.left}px`);
+  e.currentTarget.style.setProperty('--of-y', `${e.clientY - r.top}px`);
+};
+
+const Navegacao = () => {
+  const [aberto, setAberto] = useState(false);
+  const [rolou, setRolou] = useState(false);
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, 'change', (y) => setRolou(y > 40));
+
+  const links = [['servicos', 'Serviços'], ['laudo', 'Como trabalhamos'], ['orcamento', 'Orçamento']];
+  const clicar = (id) => (e) => {
+    setAberto(false);
+    irPara(id)(e);
   };
 
   return (
-    <div className="oficina-page min-h-screen antialiased overflow-x-hidden selection:bg-[#D45500] selection:text-white">
-      <Helmet>
-        <title>Auto Center Bom Torque | Exemplo ARRC Sistemas</title>
-        <meta name="description" content="Exemplo de site premium para oficina automotiva, desenvolvido pela ARRC Sistemas." />
-      </Helmet>
-
-      <Link
-        to="/"
-        className="fixed bottom-5 left-5 z-50 flex items-center gap-2 bg-[#D45500] text-white text-xs uppercase tracking-widest px-4 py-2 rounded-full shadow-lg hover:bg-[#ff6a00] transition-colors"
-      >
-        <ArrowLeft size={14} /> ARRC Sistemas
-      </Link>
-
-      <nav className="bg-[#101414] fixed top-0 w-full z-50 border-b border-[#c5c7c8]/20 px-6 md:px-12 py-4">
-        <div className="flex justify-between items-center">
-          <div className="text-xl font-bold text-[#ffb695] uppercase tracking-tighter" style={{ fontFamily: "'Archivo Narrow', sans-serif" }}>BOM TORQUE</div>
-          <div className="hidden md:flex gap-8 items-center text-xs uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            <button onClick={() => scrollToId('servicos')} className="text-[#e1e3e3] hover:opacity-80 transition-opacity">Serviços</button>
-            <button onClick={() => scrollToId('sobre')} className="text-[#e1e3e3] hover:opacity-80 transition-opacity">Sobre</button>
-            <button onClick={() => scrollToId('orcamento')} className="text-[#e1e3e3] hover:opacity-80 transition-opacity">Contato</button>
-          </div>
-          <button onClick={() => scrollToId('orcamento')} className="hidden md:block bg-[#D45500] text-black text-xs uppercase tracking-widest px-6 py-2 hover:opacity-80 transition-all" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            Get Quote
-          </button>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-[#ffb695]" aria-label="Abrir menu">
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+    <nav className={`of-nav${rolou || aberto ? ' of-nav--solida' : ''}`} aria-label="Principal">
+      <div className="of-nav__linha">
+        <a href="#inicio" onClick={clicar('inicio')} className="of-nav__marca">Bom Torque</a>
+        <div className="of-nav__links">
+          {links.slice(0, 2).map(([id, nome]) => <a key={id} href={`#${id}`} onClick={clicar(id)}>{nome}</a>)}
+          <a href="#orcamento" onClick={clicar('orcamento')} className="of-botao of-botao--pequeno">Pedir orçamento</a>
         </div>
-        {mobileOpen && (
-          <div className="md:hidden border-t border-[#c5c7c8]/20 mt-4 pt-4 flex flex-col gap-5 text-xs uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            <button onClick={() => { scrollToId('servicos'); setMobileOpen(false); }} className="text-left text-[#e1e3e3]">Serviços</button>
-            <button onClick={() => { scrollToId('sobre'); setMobileOpen(false); }} className="text-left text-[#e1e3e3]">Sobre</button>
-            <button onClick={() => { scrollToId('orcamento'); setMobileOpen(false); }} className="bg-[#D45500] text-black px-6 py-2 w-fit">Get Quote</button>
+        <button type="button" className="of-nav__menu" onClick={() => setAberto(!aberto)} aria-expanded={aberto} aria-label={aberto ? 'Fechar menu' : 'Abrir menu'}>
+          {aberto ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+      {aberto && (
+        <div className="of-nav__gaveta">
+          {links.map(([id, nome]) => <a key={id} href={`#${id}`} onClick={clicar(id)}>{nome}</a>)}
+        </div>
+      )}
+    </nav>
+  );
+};
+
+const LinhaTitulo = ({ children, atraso, reduzido }) => (
+  <span className="of-hero__mascara">
+    <motion.span
+      className="of-hero__linha"
+      initial={reduzido ? false : { y: '108%' }}
+      animate={{ y: 0 }}
+      transition={{ duration: 1.1, delay: atraso, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {children}
+    </motion.span>
+  </span>
+);
+
+const Abertura = ({ reduzido }) => {
+  const { scrollY } = useScroll();
+  const largura = useTransform(scrollY, [0, 620], [100, 62], { clamp: true });
+  const peso = useTransform(scrollY, [0, 620], [800, 500], { clamp: true });
+  const variacao = useMotionTemplate`"wdth" ${largura}, "wght" ${peso}`;
+  const subida = useTransform(scrollY, [0, 700], [0, -90]);
+
+  const aparecer = (atraso) => (reduzido ? {} : {
+    initial: { opacity: 0, y: 18 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.8, delay: atraso, ease: [0.16, 1, 0.3, 1] },
+  });
+
+  return (
+    <header id="inicio" className="of-hero">
+      <EngrenagensCanvas estatico={reduzido} />
+      <div className="of-hero__veu" />
+      <motion.div className="of-hero__conteudo" style={reduzido ? undefined : { y: subida }}>
+        <motion.p className="of-rotulo" {...aparecer(0.1)}>Auto center em Rio das Ostras, RJ</motion.p>
+        <motion.h1 className="of-hero__titulo" style={reduzido ? undefined : { fontVariationSettings: variacao }}>
+          <LinhaTitulo atraso={0.15} reduzido={reduzido}>Seu carro</LinhaTitulo>
+          <LinhaTitulo atraso={0.25} reduzido={reduzido}>no torque</LinhaTitulo>
+          <LinhaTitulo atraso={0.35} reduzido={reduzido}><em>certo.</em></LinhaTitulo>
+        </motion.h1>
+        <div className="of-hero__rodape">
+          <motion.p className="of-hero__texto" {...aparecer(0.7)}>
+            Revisão, freios, suspensão, elétrica e óleo, com diagnóstico por scanner e um laudo com fotos de cada peça. Você decide sabendo o que está pagando.
+          </motion.p>
+          <motion.div className="of-hero__acoes" {...aparecer(0.85)}>
+            <a href="#orcamento" onClick={irPara('orcamento')} className="of-botao">
+              Pedir orçamento <ArrowRight size={18} />
+            </a>
+            <a href="#servicos" onClick={irPara('servicos')} className="of-link">Ver serviços</a>
+          </motion.div>
+        </div>
+      </motion.div>
+    </header>
+  );
+};
+
+const Palavra = ({ progresso, indice, total, children }) => {
+  const opacidade = useTransform(progresso, [indice / total, (indice + 1.5) / total], [0.14, 1]);
+  return <motion.span style={{ opacity: opacidade }}>{children} </motion.span>;
+};
+
+const Manifesto = ({ reduzido }) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  const palavras = manifesto.split(' ');
+
+  if (reduzido) {
+    return (
+      <section className="of-manifesto of-manifesto--estatico">
+        <p className="of-manifesto__texto">{manifesto}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section ref={ref} className="of-manifesto">
+      <div className="of-manifesto__fixo">
+        <p className="of-manifesto__texto" aria-label={manifesto}>
+          {palavras.map((p, i) => (
+            <Palavra key={`${p}-${i}`} progresso={scrollYProgress} indice={i} total={palavras.length}>{p}</Palavra>
+          ))}
+        </p>
+      </div>
+    </section>
+  );
+};
+
+const CartaoServico = ({ servico }) => (
+  <article className="of-servico" onPointerMove={moverHolofote}>
+    <div className="of-servico__topo">
+      <span className="of-servico__numero" aria-hidden="true">{servico.n}</span>
+      <ArteServico tipo={servico.arte} />
+    </div>
+    <div>
+      <h3 className="of-servico__titulo">{servico.titulo}</h3>
+      <p className="of-servico__texto">{servico.texto}</p>
+    </div>
+  </article>
+);
+
+const Servicos = ({ reduzido }) => {
+  const larga = useTelaLarga();
+  const fixado = larga && !reduzido;
+  const secaoRef = useRef(null);
+  const trilhaRef = useRef(null);
+  const [distancia, setDistancia] = useState(0);
+  const { scrollYProgress } = useScroll({ target: secaoRef, offset: ['start start', 'end end'] });
+  const x = useTransform(scrollYProgress, [0, 1], [0, -distancia]);
+
+  useEffect(() => {
+    if (!fixado || !trilhaRef.current) return undefined;
+    const medir = () => setDistancia(Math.max(0, trilhaRef.current.scrollWidth - document.documentElement.clientWidth));
+    const observador = new ResizeObserver(medir);
+    observador.observe(trilhaRef.current);
+    window.addEventListener('resize', medir);
+    medir();
+    return () => {
+      observador.disconnect();
+      window.removeEventListener('resize', medir);
+    };
+  }, [fixado]);
+
+  return (
+    <section
+      id="servicos"
+      ref={secaoRef}
+      className={`of-servicos${fixado ? ' of-servicos--fixado' : ''}`}
+      style={fixado ? { height: `calc(100dvh + ${distancia}px)` } : undefined}
+    >
+      <div className="of-servicos__janela">
+        <motion.div ref={trilhaRef} className="of-servicos__trilha" style={fixado ? { x } : undefined}>
+          <div className="of-servicos__intro">
+            <p className="of-rotulo">O que fazemos</p>
+            <h2 className="of-titulo">Cinco serviços. Um jeito de trabalhar.</h2>
+            <p className="of-servicos__apoio">Medimos antes de trocar. Se a peça ainda está boa, ela fica no carro.</p>
+          </div>
+          {servicos.map((s) => <CartaoServico key={s.n} servico={s} />)}
+        </motion.div>
+        {fixado && (
+          <div className="of-servicos__barra" aria-hidden="true">
+            <motion.div style={{ scaleX: scrollYProgress }} />
           </div>
         )}
-      </nav>
+      </div>
+    </section>
+  );
+};
 
-      {/* Hero */}
-      <header className="oficina-clip-diagonal relative h-[80vh] min-h-[600px] flex items-center justify-start px-6 md:px-12 mt-16 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="bg-cover bg-center w-full h-full opacity-40" style={{ mixBlendMode: 'luminosity', backgroundImage: "url('/images/exemplos/oficina/hero-engine.jpg')" }}></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#121414] via-[#121414]/80 to-transparent"></div>
+const Laudo = ({ reduzido }) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  const [linhas, setLinhas] = useState(reduzido ? laudo.length : 0);
+  const posicao = useTransform(scrollYProgress, [0.06, 0.86], [0, 100], { clamp: true });
+  const topo = useMotionTemplate`${posicao}%`;
+  const recorte = useMotionTemplate`inset(0 0 calc(100% - ${posicao}%) 0)`;
+
+  useMotionValueEvent(posicao, 'change', (p) => {
+    if (!reduzido) setLinhas(Math.min(laudo.length, Math.floor(p / (100 / laudo.length) + 0.25)));
+  });
+
+  return (
+    <section id="laudo" ref={ref} className={`of-laudo${reduzido ? ' of-laudo--estatico' : ''}`}>
+      <div className="of-laudo__fixo">
+        <div className="of-laudo__cabeca">
+          <p className="of-rotulo">Como trabalhamos</p>
+          <h2 className="of-titulo">Você vê o que a gente vê.</h2>
         </div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="relative z-10 w-full max-w-4xl">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-12 h-[1px] bg-[#D45500]"></div>
-            <span className="text-xs text-[#D45500] uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Engineered for Excellence</span>
-          </div>
-          <h1 className="text-5xl md:text-8xl uppercase mb-6 leading-[0.95] text-[#e1e3e3]" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 800 }}>
-            Precisão em cada torque.<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D45500] to-[#ff8c42]">Performance em cada km.</span>
-          </h1>
-          <p className="text-base md:text-lg text-[#e0c0b2] max-w-xl mb-10 border-l border-[#c5c7c8]/20 pl-4 py-2">
-            Nosso laboratório mecânico combina tecnologia de ponta com expertise em motorsport para extrair a máxima eficiência, durabilidade e potência do seu veículo. Manutenção não é custo, é investimento em performance.
-          </p>
-          <div className="flex flex-wrap gap-6 items-center">
-            <button onClick={() => scrollToId('orcamento')} className="oficina-notch-corner bg-[#D45500] text-black text-xs uppercase tracking-widest px-8 py-4 hover:bg-[#ff6a00] transition-colors duration-300 flex items-center gap-2" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              Solicitar Orçamento <ArrowRight size={16} />
-            </button>
-            <div className="flex flex-col gap-1 border-l border-[#c5c7c8]/20 pl-4">
-              <span className="text-3xl leading-none text-[#e1e3e3]" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>24/7</span>
-              <span className="text-xs text-[#e0c0b2] uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Suporte Técnico</span>
-            </div>
-          </div>
-        </motion.div>
-      </header>
-
-      {/* Services */}
-      <section id="servicos" className="oficina-clip-diagonal-reverse py-20 md:py-28 px-6 md:px-12 relative z-10 bg-[#101414] -mt-[10vh]">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 border-b border-[#c5c7c8]/20 pb-4">
-            <div>
-              <h2 className="text-3xl md:text-5xl text-[#e1e3e3] uppercase" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>Protocolos de Manutenção</h2>
-              <p className="text-[#e0c0b2] mt-2 max-w-md">Serviços executados com precisão milimétrica e aferição computadorizada.</p>
-            </div>
-            <div className="hidden md:flex items-center gap-2 text-[#e0c0b2] mt-4 md:mt-0 text-xs uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              <Target size={18} /> Calibragem: 100%
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-            {servicos.map((s) => (
-              <motion.div
-                key={s.n}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className={`oficina-notch-corner bg-[#1d2020] hover:bg-[#272b2b] transition-colors p-8 border border-[#c5c7c8]/10 group relative overflow-hidden ${s.accent ? 'border-t-2 border-t-[#D45500]' : ''}`}
-              >
-                <div className="absolute top-4 right-4 text-4xl text-[#e1e3e3]/10 group-hover:text-[#D45500]/20 transition-colors" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>{s.n}</div>
-                <div className="mb-8">
-                  <s.icon size={32} className="text-[#D45500] mb-4" strokeWidth={1.5} />
-                  <h3 className="text-xl uppercase mb-2 text-[#e1e3e3]" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>{s.title}</h3>
-                  <div className="w-12 h-[1px] bg-[#c5c7c8]/20 group-hover:w-full group-hover:bg-[#D45500] transition-all duration-500"></div>
-                </div>
-                <p className="text-xs text-[#e0c0b2] leading-relaxed uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{s.desc}</p>
-              </motion.div>
-            ))}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="oficina-notch-corner bg-[#1d2020] hover:bg-[#272b2b] transition-colors p-8 border border-[#c5c7c8]/10 group relative overflow-hidden lg:col-span-2"
-            >
-              <div className="absolute top-4 right-4 text-4xl text-[#e1e3e3]/10 group-hover:text-[#D45500]/20 transition-colors" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>05</div>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 h-full">
-                <div>
-                  <Fuel size={32} className="text-[#D45500] mb-4" strokeWidth={1.5} />
-                  <h3 className="text-xl uppercase mb-2 text-[#e1e3e3]" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>Troca de Óleo Premium</h3>
-                  <div className="w-12 h-[1px] bg-[#c5c7c8]/20 group-hover:w-full group-hover:bg-[#D45500] transition-all duration-500 mb-4"></div>
-                  <p className="text-xs text-[#e0c0b2] leading-relaxed uppercase max-w-sm" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Lubrificantes sintéticos de alta performance. Filtros OEM. Flushing de motor. Análise de viscosidade e contaminação.</p>
-                </div>
-                <div className="relative w-full md:w-1/2 h-48 border border-[#c5c7c8]/20 oficina-notch-corner overflow-hidden">
-                  <div className="bg-cover bg-center w-full h-full opacity-60" style={{ mixBlendMode: 'luminosity', backgroundImage: "url('/images/exemplos/oficina/oleo-pour.jpg')" }}></div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose Us */}
-      <section id="sobre" className="py-20 md:py-28 relative z-0 bg-[#121414]">
-        <div className="grid grid-cols-1 lg:grid-cols-2">
-          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="oficina-clip-diagonal relative h-[400px] lg:h-auto pr-6 md:pr-12">
-            <div className="bg-cover bg-center w-full h-full opacity-50" style={{ mixBlendMode: 'luminosity', backgroundImage: "url('/images/exemplos/oficina/mecanico-torque.jpg')" }}></div>
-            <div className="absolute bottom-10 left-6 md:left-12 bg-[#101414]/90 border border-[#c5c7c8]/20 p-6 backdrop-blur-sm oficina-notch-corner border-l-2 border-l-[#D45500]">
-              <span className="text-xs text-[#D45500] block mb-2 uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Telemetria Interna</span>
-              <div className="text-3xl text-[#e1e3e3] leading-none mb-1" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>+15</div>
-              <span className="text-xs text-[#e0c0b2] uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Anos em Pista</span>
-            </div>
-          </motion.div>
-          <div className="pl-6 pr-6 md:pl-12 md:pr-24 py-16 flex flex-col justify-center">
-            <div className="flex items-center gap-2 mb-6">
-              <Target size={20} className="text-[#D45500]" />
-              <span className="text-xs text-[#D45500] uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>A Diferença Bom Torque</span>
-            </div>
-            <h2 className="text-3xl md:text-5xl text-[#e1e3e3] uppercase mb-8" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>Não é só manutenção.<br />É engenharia aplicada.</h2>
-            <div className="space-y-8 mt-4 border-l border-[#c5c7c8]/20 pl-6 ml-2">
-              {diferenciais.map((d) => (
-                <div key={d.title} className="relative">
-                  <div className={`absolute -left-[31px] top-1 w-3 h-3 bg-[#121414] rounded-full border ${d.active ? 'border-[#D45500]' : 'border-[#c5c7c8]/40'}`}></div>
-                  <h4 className="text-lg uppercase mb-1 text-[#e1e3e3]" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>{d.title}</h4>
-                  <p className="text-sm text-[#e0c0b2]">{d.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Quote form */}
-      <section id="orcamento" className="py-20 md:py-28 px-6 md:px-12 bg-[#323536] relative">
-        <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-5 gap-12 items-center">
-          <div className="lg:col-span-2">
-            <h2 className="text-4xl md:text-6xl text-[#e1e3e3] uppercase leading-[0.9] mb-6" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 800 }}>
-              Solicitar<br /><span className="text-transparent bg-clip-text bg-gradient-to-b from-[#D45500] to-[#ff8c42]">Orçamento</span>
-            </h2>
-            <p className="text-[#e0c0b2] border-l border-[#D45500] pl-4 py-2">Agende seu serviço. Nossa equipe técnica entrará em contato em menos de 15 minutos com um pré-diagnóstico logístico.</p>
-          </div>
-          <div className="lg:col-span-3 bg-[#121414] p-8 md:p-10 border border-[#c5c7c8]/20 oficina-notch-corner shadow-2xl">
-            {submitted ? (
-              <div className="text-center py-8">
-                <h3 className="text-2xl text-[#e1e3e3] uppercase mb-4" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 700 }}>Dados Transmitidos.</h3>
-                <p className="text-[#e0c0b2]">Nossa equipe técnica entrará em contato em breve para confirmar seu diagnóstico logístico.</p>
-              </div>
-            ) : (
+        <div className="of-laudo__grade">
+          <figure className="of-laudo__foto">
+            <img src="/images/exemplos/oficina/freio-medicao.jpg" alt="Mão de mecânico medindo um freio com micrômetro" loading="lazy" width="1600" height="1067" />
+            {!reduzido && (
               <>
-                <div className="flex justify-between items-center mb-8 border-b border-[#c5c7c8]/20 pb-4">
-                  <span className="text-xs text-[#e1e3e3] uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Input_Data_Stream</span>
-                  <span className="text-xs text-[#D45500] flex items-center gap-1 uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    <span className="w-2 h-2 bg-[#D45500] rounded-full animate-pulse"></span> Secure_Connection
-                  </span>
-                </div>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-xs text-[#e0c0b2] mb-2 uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Nome do Piloto / Cliente</label>
-                      <input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full bg-[#101414] border-0 border-b border-[#c5c7c8]/40 text-[#e1e3e3] focus:ring-0 focus:border-[#D45500] transition-colors py-3 px-0" type="text" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-[#e0c0b2] mb-2 uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Contato (WhatsApp)</label>
-                      <input required value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className="w-full bg-[#101414] border-0 border-b border-[#c5c7c8]/40 text-[#e1e3e3] focus:ring-0 focus:border-[#D45500] transition-colors py-3 px-0" type="tel" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-xs text-[#e0c0b2] mb-2 uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Veículo (Marca/Modelo/Ano)</label>
-                      <input value={form.veiculo} onChange={(e) => setForm({ ...form, veiculo: e.target.value })} className="w-full bg-[#101414] border-0 border-b border-[#c5c7c8]/40 text-[#e1e3e3] focus:ring-0 focus:border-[#D45500] transition-colors py-3 px-0" type="text" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-[#e0c0b2] mb-2 uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Tipo de Serviço</label>
-                      <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className="w-full bg-[#101414] border-0 border-b border-[#c5c7c8]/40 text-[#e1e3e3] focus:ring-0 focus:border-[#D45500] transition-colors py-3 px-0 appearance-none">
-                        <option>REVISÃO PROGRAMADA</option>
-                        <option>DIAGNÓSTICO DE FALHA</option>
-                        <option>UPGRADE DE PERFORMANCE</option>
-                        <option>MANUTENÇÃO CORRETIVA</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-[#e0c0b2] mb-2 uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Descrição do Sintoma ou Solicitação</label>
-                    <textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="w-full bg-[#101414] border-0 border-b border-[#c5c7c8]/40 text-[#e1e3e3] focus:ring-0 focus:border-[#D45500] transition-colors py-3 px-0 resize-none" rows={3}></textarea>
-                  </div>
-                  <div className="pt-4 flex justify-end">
-                    <button type="submit" className="bg-[#D45500] text-black text-xs uppercase tracking-widest px-10 py-4 hover:bg-[#ff6a00] transition-colors duration-300 oficina-notch-corner flex items-center gap-2" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                      Transmitir Dados <Send size={16} />
-                    </button>
-                  </div>
-                </form>
+                <motion.img src="/images/exemplos/oficina/freio-medicao.jpg" alt="" className="of-laudo__revelada" style={{ clipPath: recorte }} loading="lazy" width="1600" height="1067" />
+                <motion.span className="of-laudo__linha" style={{ top: topo }} aria-hidden="true" />
               </>
             )}
+          </figure>
+          <div className="of-laudo__painel">
+            <p className="of-laudo__aviso">Exemplo de laudo</p>
+            <ul>
+              {laudo.map((l, i) => {
+                const Icone = iconesSituacao[l.nivel];
+                return (
+                  <li key={l.item} className={i < linhas ? 'of-laudo__item of-laudo__item--visivel' : 'of-laudo__item'}>
+                    <span className="of-laudo__nome">{l.item}<small>{l.leitura}</small></span>
+                    <span className={`of-situacao of-situacao--${l.nivel}`}><Icone size={15} aria-hidden="true" /> {l.situacao}</span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+};
 
-      <footer className="bg-[#0b0f0f] w-full border-t border-[#c5c7c8]/10 px-6 md:px-12 py-16">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-6xl md:text-8xl text-[#e1e3e3]/5 uppercase mb-8 whitespace-nowrap overflow-hidden" style={{ fontFamily: "'Archivo Narrow', sans-serif", fontWeight: 800 }}>
-            BOM TORQUE
+const FotoDisco = ({ reduzido }) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  const lateral = useTransform(scrollYProgress, [0, 1], [14, 0], { clamp: true });
+  const recorte = useMotionTemplate`inset(${lateral}% ${lateral}% ${lateral}% ${lateral}%)`;
+  const escala = useTransform(scrollYProgress, [0, 1], [1.28, 1], { clamp: true });
+
+  return (
+    <figure ref={ref} className="of-foto">
+      <motion.div className="of-foto__janela" style={reduzido ? undefined : { clipPath: recorte }}>
+        <motion.img
+          src="/images/exemplos/oficina/disco-freio.jpg"
+          alt="Disco de freio perfurado de um carro erguido no elevador"
+          loading="lazy"
+          width="1600"
+          height="1069"
+          style={reduzido ? undefined : { scale: escala }}
+        />
+        <figcaption>Disco novo só quando o antigo não passa na medição.</figcaption>
+      </motion.div>
+    </figure>
+  );
+};
+
+const Contador = ({ valor, prefixo, reduzido }) => {
+  const ref = useRef(null);
+  const visto = useInView(ref, { once: true, margin: '-15% 0px' });
+  const [atual, setAtual] = useState(reduzido ? valor : 0);
+
+  useEffect(() => {
+    if (!visto || reduzido) return undefined;
+    const controle = animate(0, valor, { duration: 1.6, ease: [0.16, 1, 0.3, 1], onUpdate: (v) => setAtual(Math.round(v)) });
+    return () => controle.stop();
+  }, [visto, valor, reduzido]);
+
+  return <span ref={ref} className="of-numero__valor">{prefixo}{atual}</span>;
+};
+
+const Numeros = ({ reduzido }) => (
+  <section className="of-numeros" aria-label="A oficina em números">
+    {numeros.map((n) => (
+      <div key={n.titulo} className="of-numero">
+        <Contador valor={n.valor} prefixo={n.prefixo} reduzido={reduzido} />
+        <div>
+          <h3>{n.titulo}</h3>
+          <p>{n.texto}</p>
+        </div>
+      </div>
+    ))}
+  </section>
+);
+
+const Faixa = ({ reduzido }) => {
+  const { scrollY } = useScroll();
+  const velocidade = useSpring(useVelocity(scrollY), { damping: 50, stiffness: 300 });
+  const inclinacao = useTransform(velocidade, [-2500, 2500], [-7, 7], { clamp: true });
+  const itens = [...faixaServicos, ...faixaServicos];
+
+  return (
+    <div className="of-faixa" aria-hidden="true">
+      <motion.div className="of-faixa__trilha" style={reduzido ? undefined : { skewX: inclinacao }}>
+        {[0, 1].map((bloco) => (
+          <div key={bloco} className="of-faixa__bloco">
+            {itens.map((t, i) => <span key={`${t}-${i}`}>{t}<i>/</i></span>)}
           </div>
-          <div className="flex flex-col md:flex-row justify-between gap-6 text-xs text-[#e0c0b2] uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            <div>
-              <p>© 2024 Auto Center Bom Torque. Precision Engineered.</p>
-              <p className="mt-2">Rua das Garagens, 1020 - Rio das Ostras, RJ · (22) 99999-9999</p>
+        ))}
+      </motion.div>
+    </div>
+  );
+};
+
+const Campo = ({ id, rotulo, erro, children }) => (
+  <div className={`of-campo${erro ? ' of-campo--erro' : ''}`}>
+    {children}
+    <label htmlFor={id}>{rotulo}</label>
+    {erro && <p id={`${id}-erro`} className="of-campo__erro" role="alert"><AlertTriangle size={14} aria-hidden="true" /> {erro}</p>}
+  </div>
+);
+
+const Orcamento = () => {
+  const [form, setForm] = useState(formularioVazio);
+  const [erros, setErros] = useState({});
+  const [enviado, setEnviado] = useState(false);
+
+  const alterar = (campo) => (e) => {
+    const valor = campo === 'whatsapp' ? mascararTelefone(e.target.value) : e.target.value;
+    const novo = { ...form, [campo]: valor };
+    setForm(novo);
+    if (erros[campo]) setErros((atuais) => ({ ...atuais, [campo]: validarFormulario(novo)[campo] }));
+  };
+
+  const validarCampo = (campo) => () => {
+    setErros((atuais) => ({ ...atuais, [campo]: validarFormulario(form)[campo] }));
+  };
+
+  const enviar = (e) => {
+    e.preventDefault();
+    const encontrados = validarFormulario(form);
+    setErros(encontrados);
+    if (Object.keys(encontrados).length === 0) setEnviado(true);
+  };
+
+  const recomecar = () => {
+    setForm(formularioVazio);
+    setErros({});
+    setEnviado(false);
+  };
+
+  const propsCampo = (campo) => ({
+    id: `of-${campo}`,
+    value: form[campo],
+    onChange: alterar(campo),
+    placeholder: ' ',
+    'aria-invalid': Boolean(erros[campo]),
+    'aria-describedby': erros[campo] ? `of-${campo}-erro` : undefined,
+  });
+
+  return (
+    <section id="orcamento" className="of-orcamento">
+      <div className="of-orcamento__intro">
+        <p className="of-rotulo">Orçamento</p>
+        <h2 className="of-titulo">Conte o que o carro está fazendo.</h2>
+        <p>Barulho, luz no painel ou só a revisão em dia: em menos de 15 minutos alguém da oficina responde no seu WhatsApp.</p>
+        <address>
+          Rua das Garagens, 1020, Rio das Ostras, RJ<br />
+          <a href="tel:+5522999999999">(22) 99999-9999</a>
+        </address>
+      </div>
+
+      <div className="of-orcamento__caixa" onPointerMove={moverHolofote}>
+        {enviado ? (
+          <motion.div className="of-sucesso" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} role="status">
+            <span className="of-sucesso__icone"><Check size={30} aria-hidden="true" /></span>
+            <h3>Tudo preenchido, {form.nome.trim().split(' ')[0]}.</h3>
+            <p>Este é um site de demonstração, então nada foi enviado nem guardado. No site de verdade, o pedido chegaria na hora ao WhatsApp da oficina.</p>
+            <button type="button" className="of-link" onClick={recomecar}>Preencher de novo</button>
+          </motion.div>
+        ) : (
+          <form onSubmit={enviar} noValidate>
+            <div className="of-form__linha">
+              <Campo id="of-nome" rotulo="Seu nome" erro={erros.nome}>
+                <input {...propsCampo('nome')} type="text" autoComplete="name" onBlur={validarCampo('nome')} />
+              </Campo>
+              <Campo id="of-whatsapp" rotulo="WhatsApp" erro={erros.whatsapp}>
+                <input {...propsCampo('whatsapp')} type="tel" inputMode="tel" autoComplete="tel" onBlur={validarCampo('whatsapp')} />
+              </Campo>
             </div>
-            <div className="flex flex-wrap gap-4">
-              <span>Garantia</span>
-              <span>Frota</span>
+            <Campo id="of-veiculo" rotulo="Carro, modelo e ano" erro={erros.veiculo}>
+              <input {...propsCampo('veiculo')} type="text" onBlur={validarCampo('veiculo')} />
+            </Campo>
+            <fieldset className="of-opcoes">
+              <legend>O que você precisa?</legend>
+              <div>
+                {tiposServico.map((t) => (
+                  <label key={t} className={form.tipo === t ? 'of-opcao of-opcao--ativa' : 'of-opcao'}>
+                    <input type="radio" name="of-tipo" value={t} checked={form.tipo === t} onChange={alterar('tipo')} />
+                    {t}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <Campo id="of-descricao" rotulo="O que está acontecendo? (opcional)">
+              <textarea {...propsCampo('descricao')} rows={3} />
+            </Campo>
+            <div className="of-form__fim">
+              <p>Usamos estes dados só para responder ao seu pedido.</p>
+              <button type="submit" className="of-botao">Pedir orçamento <ArrowRight size={18} /></button>
             </div>
-          </div>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const OficinaPage = () => {
+  const reduzido = useReducedMotion();
+
+  return (
+    <div className="oficina-page">
+      <Helmet>
+        <title>Auto Center Bom Torque | Exemplo ARRC Sistemas</title>
+        <meta name="description" content="Exemplo de site para oficina mecânica, com cena 3D em tempo real e animações ligadas à rolagem, desenvolvido pela ARRC Sistemas." />
+      </Helmet>
+
+      <a href="#conteudo" className="of-pular">Pular para o conteúdo</a>
+      <div className="of-grao" aria-hidden="true" />
+
+      <Link to="/" className="of-voltar">
+        <ArrowLeft size={16} /> ARRC Sistemas
+      </Link>
+
+      <Navegacao />
+      <Torquimetro />
+      <Abertura reduzido={reduzido} />
+
+      <main id="conteudo">
+        <Manifesto reduzido={reduzido} />
+        <Servicos reduzido={reduzido} />
+        <Laudo reduzido={reduzido} />
+        <FotoDisco reduzido={reduzido} />
+        <Faixa reduzido={reduzido} />
+        <Numeros reduzido={reduzido} />
+        <Orcamento />
+      </main>
+
+      <footer className="of-rodape">
+        <div className="of-rodape__marca" aria-hidden="true">Bom Torque</div>
+        <div className="of-rodape__linha">
+          <p>Site de exemplo. A oficina, o endereço, o telefone e os números são fictícios. Fotos: Pexels.</p>
+          <Link to="/" className="of-link">Criado pela ARRC Sistemas <ArrowUpRight size={16} /></Link>
         </div>
       </footer>
     </div>

@@ -18,6 +18,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUpRight, Check, Eye, Menu, X
 import EngrenagensCanvas from '@/components/oficina/EngrenagensCanvas';
 import ArteServico from '@/components/oficina/ArteServico';
 import Torquimetro from '@/components/oficina/Torquimetro';
+import { irPara, mascararTelefone, telefoneValido, useTelaLarga } from '@/components/exemplos/utilitarios';
 import './OficinaPage.css';
 
 const servicos = [
@@ -49,38 +50,12 @@ const faixaServicos = ['Revisão', 'Freios', 'Suspensão', 'Elétrica', 'Óleo',
 const manifesto = 'Mecânico bom não adivinha. Ele mede, mostra a peça e explica o que precisa ser feito agora e o que pode esperar.';
 const formularioVazio = { nome: '', whatsapp: '', veiculo: '', tipo: tiposServico[0], descricao: '' };
 
-const irPara = (id) => (e) => {
-  e.preventDefault();
-  const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.getElementById(id)?.scrollIntoView({ behavior: reduzido ? 'auto' : 'smooth' });
-};
-
-const mascararTelefone = (valor) => {
-  const d = valor.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : '';
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-};
-
 const validarFormulario = ({ nome, whatsapp, veiculo }) => {
   const erros = {};
   if (nome.trim().length < 2) erros.nome = 'Escreva seu nome para sabermos com quem falar.';
-  const digitos = whatsapp.replace(/\D/g, '').length;
-  if (digitos < 10) erros.whatsapp = 'Confira o número: faltam dígitos. Exemplo: (22) 99999-9999.';
+  if (!telefoneValido(whatsapp)) erros.whatsapp = 'Confira o número: faltam dígitos. Exemplo: (22) 99999-9999.';
   if (veiculo.trim().length < 2) erros.veiculo = 'Conte qual é o carro. Exemplo: Onix 2019.';
   return erros;
-};
-
-const useTelaLarga = () => {
-  const [larga, setLarga] = useState(() => window.matchMedia('(min-width: 900px)').matches);
-  useEffect(() => {
-    const consulta = window.matchMedia('(min-width: 900px)');
-    const aoMudar = (e) => setLarga(e.matches);
-    consulta.addEventListener('change', aoMudar);
-    return () => consulta.removeEventListener('change', aoMudar);
-  }, []);
-  return larga;
 };
 
 const moverHolofote = (e) => {
@@ -229,10 +204,11 @@ const Servicos = ({ reduzido }) => {
   const x = useTransform(scrollYProgress, [0, 1], [0, -distancia]);
 
   useEffect(() => {
-    if (!fixado || !trilhaRef.current) return undefined;
-    const medir = () => setDistancia(Math.max(0, trilhaRef.current.scrollWidth - document.documentElement.clientWidth));
+    const trilha = trilhaRef.current;
+    if (!fixado || !trilha) return undefined;
+    const medir = () => setDistancia(Math.max(0, trilha.scrollWidth - document.documentElement.clientWidth));
     const observador = new ResizeObserver(medir);
-    observador.observe(trilhaRef.current);
+    observador.observe(trilha);
     window.addEventListener('resize', medir);
     medir();
     return () => {

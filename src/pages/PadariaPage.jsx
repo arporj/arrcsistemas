@@ -1,190 +1,289 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Phone, MapPin, Quote, Menu, X } from 'lucide-react';
+import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
+import { ArrowLeft, Clock, MapPin, Minus, Phone, Plus } from 'lucide-react';
+import Farinha from '@/components/padaria/Farinha';
+import { formatarReais, irPara } from '@/components/exemplos/utilitarios';
 import './PadariaPage.css';
 
-const lanches = [
-  { nome: 'Pão na Chapa', preco: 'R$ 5,00' },
-  { nome: 'Misto Quente', preco: 'R$ 8,00' },
-  { nome: 'Bauru', preco: 'R$ 12,00' },
-  { nome: 'Açaí na Tigela', extra: '300ml', preco: 'R$ 15,00' },
+const HORA_INICIAL = 4;
+const HORA_FINAL = 20;
+const ABRE = 5;
+const FECHA = 20;
+
+const fornadas = [
+  { hora: 5, nome: 'pão de fermentação natural' },
+  { hora: 7, nome: 'pão francês' },
+  { hora: 10, nome: 'broa de milho' },
+  { hora: 15, nome: 'pão de queijo' },
+  { hora: 17, nome: 'pão francês' },
 ];
 
-const scrollToId = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+const cardapio = [
+  { id: 'fermentacao', nome: 'Pão de fermentação natural', detalhe: 'Unidade de 800 g, com 24 horas de fermentação', preco: 22 },
+  { id: 'chapa', nome: 'Pão na chapa', detalhe: 'Com manteiga, feito na hora', preco: 5 },
+  { id: 'misto', nome: 'Misto quente', detalhe: 'Presunto e queijo no pão francês', preco: 8 },
+  { id: 'bauru', nome: 'Bauru', detalhe: 'Rosbife, queijo, tomate e picles', preco: 12 },
+  { id: 'acai', nome: 'Açaí na tigela', detalhe: 'Copo de 300 ml', preco: 15 },
+];
 
-const PadariaPage = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
+const horaEmSaoPaulo = () => Number(new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', hourCycle: 'h23', timeZone: 'America/Sao_Paulo' }).format(new Date()));
+
+const situacaoAgora = (hora) => {
+  const aberto = hora >= ABRE && hora < FECHA;
+  const proxima = fornadas.find((f) => f.hora > hora);
+  return {
+    aberto,
+    texto: proxima
+      ? `Próxima fornada às ${proxima.hora}h: ${proxima.nome}`
+      : `Próxima fornada amanhã às ${fornadas[0].hora}h: ${fornadas[0].nome}`,
+  };
+};
+
+const useTemaPorSecao = (raizRef) => {
+  const [tema, setTema] = useState('madrugada');
+  useEffect(() => {
+    const secoes = raizRef.current.querySelectorAll('[data-tema]');
+    const observador = new IntersectionObserver((entradas) => {
+      entradas.forEach((e) => {
+        if (e.isIntersecting) setTema(e.target.dataset.tema);
+      });
+    }, { rootMargin: '-50% 0px -50% 0px' });
+    secoes.forEach((s) => observador.observe(s));
+    return () => observador.disconnect();
+  }, [raizRef]);
+  return tema;
+};
+
+const Surgir = ({ children, atraso = 0, className }) => (
+  <motion.div
+    className={className}
+    initial={{ opacity: 0, y: 36 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: '-12% 0px' }}
+    transition={{ type: 'spring', stiffness: 70, damping: 18, delay: atraso }}
+  >
+    {children}
+  </motion.div>
+);
+
+const RelogioDoDia = () => {
+  const { scrollYProgress } = useScroll();
+  const suave = useSpring(scrollYProgress, { stiffness: 80, damping: 24 });
+  const angulo = useTransform(suave, [0, 1], [-90, 90]);
+  const hora = useTransform(suave, (p) => {
+    const minutos = Math.round((HORA_INICIAL + Math.min(Math.max(p, 0), 1) * (HORA_FINAL - HORA_INICIAL)) * 6) * 10;
+    return `${String(Math.floor(minutos / 60)).padStart(2, '0')}h${String(minutos % 60).padStart(2, '0')}`;
+  });
 
   return (
-    <div className="padaria-page min-h-screen flex flex-col antialiased" style={{ fontFamily: "'Source Serif 4', serif" }}>
+    <div className="pd-relogio" aria-hidden="true">
+      <svg viewBox="0 0 80 44">
+        <path d="M6 40 A34 34 0 0 1 74 40" />
+        <motion.g style={{ rotate: angulo, originX: '40px', originY: '40px' }}>
+          <circle cx="40" cy="6" r="5.5" />
+        </motion.g>
+      </svg>
+      <motion.span>{hora}</motion.span>
+    </div>
+  );
+};
+
+const SeloGiratorio = ({ reduzido }) => {
+  const { scrollY } = useScroll();
+  const giro = useTransform(scrollY, [0, 3000], [0, 360]);
+  return (
+    <motion.svg viewBox="0 0 120 120" className="pd-selo" style={reduzido ? undefined : { rotate: giro }} aria-hidden="true">
+      <defs>
+        <path id="pd-circulo" d="M60 60 m-44 0 a44 44 0 1 1 88 0 a44 44 0 1 1 -88 0" />
+      </defs>
+      <circle cx="60" cy="60" r="59" />
+      <text><textPath href="#pd-circulo">desde 1980 · Rio das Ostras · forno aceso ·</textPath></text>
+    </motion.svg>
+  );
+};
+
+const Encomenda = () => {
+  const [quantidades, setQuantidades] = useState({});
+  const [confirmada, setConfirmada] = useState(false);
+
+  const alterar = (id, delta) => {
+    setConfirmada(false);
+    setQuantidades((atuais) => ({ ...atuais, [id]: Math.max(0, Math.min(99, (atuais[id] || 0) + delta)) }));
+  };
+
+  const { total, itens } = useMemo(() => {
+    const escolhidos = cardapio.filter((c) => quantidades[c.id] > 0);
+    return {
+      itens: escolhidos.reduce((soma, c) => soma + quantidades[c.id], 0),
+      total: escolhidos.reduce((soma, c) => soma + quantidades[c.id] * c.preco, 0),
+    };
+  }, [quantidades]);
+
+  return (
+    <div className="pd-encomenda">
+      <ul className="pd-menu">
+        {cardapio.map((c) => {
+          const q = quantidades[c.id] || 0;
+          return (
+            <li key={c.id} className={q > 0 ? 'pd-menu__item pd-menu__item--ativo' : 'pd-menu__item'}>
+              <div className="pd-menu__texto">
+                <h3>{c.nome}</h3>
+                <p>{c.detalhe}</p>
+              </div>
+              <span className="pd-menu__preco">{formatarReais(c.preco)}</span>
+              <div className="pd-contador">
+                <button type="button" onClick={() => alterar(c.id, -1)} disabled={q === 0} aria-label={`Tirar um: ${c.nome}`}><Minus size={18} /></button>
+                <span aria-live="polite" aria-label={`${q} na encomenda: ${c.nome}`}>{q}</span>
+                <button type="button" onClick={() => alterar(c.id, 1)} aria-label={`Colocar mais um: ${c.nome}`}><Plus size={18} /></button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <aside className="pd-sacola" aria-label="Resumo da encomenda">
+        <p className="pd-sacola__titulo">Sua encomenda</p>
+        {itens === 0 ? (
+          <p className="pd-sacola__vazia">Ainda está vazia. Use o botão + para escolher o que vai levar.</p>
+        ) : (
+          <>
+            <p className="pd-sacola__itens">{itens} {itens === 1 ? 'item' : 'itens'}</p>
+            <motion.p key={total} className="pd-sacola__total" initial={{ scale: 0.92 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 18 }}>
+              {formatarReais(total)}
+            </motion.p>
+            <button type="button" className="pd-botao" onClick={() => setConfirmada(true)}>Reservar para retirar</button>
+          </>
+        )}
+        {confirmada && itens > 0 && (
+          <p className="pd-sacola__aviso" role="status">Este é um site de demonstração, então a encomenda não foi enviada. No site de verdade, ela chegaria ao balcão na hora.</p>
+        )}
+      </aside>
+    </div>
+  );
+};
+
+const PadariaPage = () => {
+  const raizRef = useRef(null);
+  const tema = useTemaPorSecao(raizRef);
+  const reduzido = useReducedMotion();
+  const [situacao] = useState(() => situacaoAgora(horaEmSaoPaulo()));
+
+  const historiaRef = useRef(null);
+  const { scrollYProgress: progressoHistoria } = useScroll({ target: historiaRef, offset: ['start end', 'center center'] });
+  const inclinacao = useTransform(progressoHistoria, [0, 1], [-9, -2]);
+
+  const fornadaRef = useRef(null);
+  const { scrollYProgress: progressoFornada } = useScroll({ target: fornadaRef, offset: ['start end', 'end start'] });
+  const deslocamento = useTransform(progressoFornada, [0, 1], ['-9%', '9%']);
+
+  return (
+    <div ref={raizRef} className={`padaria-page pd-tema-${tema}`}>
       <Helmet>
         <title>Padaria do Seu Antônio | Exemplo ARRC Sistemas</title>
-        <meta name="description" content="Exemplo de site premium para padaria artesanal, desenvolvido pela ARRC Sistemas." />
+        <meta name="description" content="Exemplo de site para padaria, com cores que seguem a hora do dia e encomenda com total automático, desenvolvido pela ARRC Sistemas." />
       </Helmet>
 
-      <Link
-        to="/"
-        className="fixed bottom-5 left-5 z-50 flex items-center gap-2 bg-[#1C140E] text-[#FDFBF7] text-xs uppercase tracking-widest px-4 py-2 rounded-full shadow-lg hover:bg-[#C5A059] transition-colors"
-      >
-        <ArrowLeft size={14} /> ARRC Sistemas
-      </Link>
+      <a href="#pd-conteudo" className="pd-pular">Pular para o conteúdo</a>
+      <Link to="/" className="pd-voltar"><ArrowLeft size={16} /> ARRC Sistemas</Link>
+      <RelogioDoDia />
 
-      {/* Nav */}
-      <header className="fixed top-0 left-0 w-full z-40 max-w-[1280px] mx-auto bg-[#FDFBF7]/95 backdrop-blur-sm padaria-hairline-b">
-        <div className="flex justify-between items-center px-5 md:px-16 py-6">
-          <div className="font-semibold tracking-tight text-[#1C140E] text-2xl md:text-[32px]" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Padaria do Seu Antônio
-          </div>
-          <nav className="hidden md:flex items-center gap-8">
-            <button onClick={() => scrollToId('legado')} className="text-xs uppercase tracking-[0.2em] font-bold text-[#4d4540] hover:text-[#1C140E] transition-colors" style={{ fontFamily: "'Space Mono', monospace" }}>Legado</button>
-            <button onClick={() => scrollToId('artesanal')} className="text-xs uppercase tracking-[0.2em] font-bold text-[#4d4540] hover:text-[#1C140E] transition-colors" style={{ fontFamily: "'Space Mono', monospace" }}>Cardápio</button>
-          </nav>
-          <button onClick={() => scrollToId('encomendar')} className="hidden md:inline-flex px-6 py-3 text-xs uppercase tracking-[0.2em] font-bold padaria-btn-primary" style={{ fontFamily: "'Space Mono', monospace" }}>
-            Encomendar
-          </button>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-[#1C140E]" aria-label="Abrir menu">
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+      <nav className="pd-nav" aria-label="Principal">
+        <span className="pd-nav__marca">Seu Antônio</span>
+        <div className="pd-nav__links">
+          <a href="#pd-cardapio" onClick={irPara('pd-cardapio')}>Cardápio</a>
+          <a href="#pd-historia" onClick={irPara('pd-historia')}>História</a>
+          <a href="#pd-visita" onClick={irPara('pd-visita')}>Visitar</a>
         </div>
-        {mobileOpen && (
-          <div className="md:hidden padaria-hairline-t px-5 py-6 flex flex-col gap-4 bg-[#FDFBF7]">
-            <button onClick={() => { scrollToId('legado'); setMobileOpen(false); }} className="text-left text-xs uppercase tracking-[0.2em] font-bold text-[#4d4540]" style={{ fontFamily: "'Space Mono', monospace" }}>Legado</button>
-            <button onClick={() => { scrollToId('artesanal'); setMobileOpen(false); }} className="text-left text-xs uppercase tracking-[0.2em] font-bold text-[#4d4540]" style={{ fontFamily: "'Space Mono', monospace" }}>Cardápio</button>
-            <button onClick={() => { scrollToId('encomendar'); setMobileOpen(false); }} className="px-6 py-3 text-xs uppercase tracking-[0.2em] font-bold padaria-btn-primary w-fit" style={{ fontFamily: "'Space Mono', monospace" }}>Encomendar</button>
-          </div>
-        )}
-      </header>
+      </nav>
 
-      <main className="flex-grow pt-[100px]">
-        {/* Hero */}
-        <section className="relative w-full min-h-[90vh] flex flex-col md:flex-row items-center justify-center px-5 md:px-16 py-20 max-w-[1280px] mx-auto gap-8">
-          <div className="w-full md:w-1/2 flex flex-col items-start z-10 relative">
-            <div className="padaria-seal rounded-full w-32 h-32 flex items-center justify-center mb-8 absolute -top-16 -left-8 md:-left-16 bg-[#FDFBF7] transform -rotate-12 z-20">
-              <span className="text-[10px] uppercase tracking-widest text-center leading-tight" style={{ fontFamily: "'Space Mono', monospace" }}>Desde<br />1980</span>
-            </div>
-            <h1 className="text-[56px] md:text-[84px] leading-[0.95] md:leading-[92px] tracking-[-0.02em] font-bold text-[#1C140E] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Tradição<br />em cada<br />pedaço.
-            </h1>
-            <p className="text-lg md:text-xl leading-relaxed text-[#4d4540] max-w-md mb-10">
-              Onde a herança familiar encontra a maestria artesanal. Cada pão conta a história de quatro décadas de dedicação em Rio das Ostras.
+      <main id="pd-conteudo">
+        <header data-tema="madrugada" className="pd-abertura">
+          <Farinha />
+          <div className="pd-abertura__texto">
+            <p className="pd-hora">04h00. A rua dorme, o forno não.</p>
+            <h1>Tradição em cada <em>pedaço.</em></h1>
+            <p className="pd-abertura__apoio">Há mais de quatro décadas, a família do Seu Antônio acorda antes da cidade para o pão sair quente em Rio das Ostras.</p>
+            <p className="pd-agora">
+              <Clock size={16} aria-hidden="true" />
+              <span><strong>{situacao.aberto ? 'Aberto agora.' : 'Fechado agora.'}</strong> {situacao.texto}</span>
             </p>
-            <button onClick={() => scrollToId('artesanal')} className="padaria-btn-ghost px-8 py-4 text-xs uppercase tracking-[0.2em] font-bold" style={{ fontFamily: "'Space Mono', monospace" }}>
-              Explorar o Cardápio
-            </button>
           </div>
-          <div className="w-full md:w-1/2 h-[60vh] md:h-[80vh] relative">
-            <img
-              alt="Pão artesanal rústico de fermentação natural"
-              className="w-full h-full object-cover object-center grayscale-[20%] contrast-125"
-              src="/images/exemplos/padaria/hero-bread.jpg"
+          <motion.figure
+            className="pd-arco"
+            initial={reduzido ? false : { clipPath: 'inset(100% 0 0 0 round 999px 999px 0 0)' }}
+            animate={{ clipPath: 'inset(0% 0 0 0 round 999px 999px 0 0)' }}
+            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <img src="/images/exemplos/padaria/pao-farinha.jpg" alt="Pão artesanal dourado, com farinha e cortes na casca" width="1300" height="1900" />
+          </motion.figure>
+        </header>
+
+        <section data-tema="manha" className="pd-fornada" ref={fornadaRef}>
+          <Surgir className="pd-fornada__titulo">
+            <p className="pd-hora">06h30. Primeira fornada no balcão.</p>
+            <h2>A fila chega com o <em>cheiro</em> do pão.</h2>
+          </Surgir>
+          <div className="pd-fornada__foto">
+            <motion.img
+              src="/images/exemplos/padaria/fornada.jpg"
+              alt="Dezenas de pães artesanais recém-saídos do forno"
+              loading="lazy"
+              width="1600"
+              height="1067"
+              style={reduzido ? undefined : { y: deslocamento }}
             />
-            <div className="absolute bottom-4 right-4 bg-[#FDFBF7]/90 px-4 py-2 text-[10px] uppercase tracking-widest border border-[#1C140E]/20" style={{ fontFamily: "'Space Mono', monospace" }}>
-              Fermentação Natural
-            </div>
+            <SeloGiratorio reduzido={reduzido} />
           </div>
+          <ol className="pd-horarios" aria-label="Horários das fornadas">
+            {fornadas.map((f) => (
+              <li key={`${f.hora}-${f.nome}`}><strong>{f.hora}h</strong> {f.nome}</li>
+            ))}
+          </ol>
         </section>
 
-        {/* Legado */}
-        <section id="legado" className="w-full px-5 md:px-16 py-20 max-w-[1280px] mx-auto padaria-hairline-t">
-          <div className="flex flex-col md:flex-row items-stretch gap-8 md:gap-[120px]">
-            <div className="w-full md:w-5/12 pt-10">
-              <span className="text-xs uppercase tracking-[0.2em] text-[#7f756f] block mb-4" style={{ fontFamily: "'Space Mono', monospace" }}>Capítulo I</span>
-              <h2 className="text-4xl md:text-5xl font-semibold text-[#1C140E] mb-8" style={{ fontFamily: "'Playfair Display', serif" }}>Nossa<br />História</h2>
-              <p className="text-base leading-relaxed text-[#4d4540] mb-6">
-                Fundada em 1980, a Padaria do Seu Antônio começou como um pequeno forno a lenha no coração de Rio das Ostras. Hoje, mantemos as mesmas receitas e o mesmo cuidado artesanal que nos tornou uma instituição na cidade.
-              </p>
-              <p className="text-base leading-relaxed text-[#4d4540]">
-                Acreditamos no "slow food", respeitando o tempo sagrado de cada massa. Nossa família serve a sua, com a excelência premiada que transcende gerações.
-              </p>
-            </div>
-            <div className="w-full md:w-7/12 relative mt-10 md:mt-0">
-              <div className="aspect-[4/5] md:aspect-[3/4] relative">
-                <img
-                  alt="Fotografia vintage da fachada original da padaria em 1980"
-                  className="w-full h-full object-cover grayscale"
-                  src="/images/exemplos/padaria/vintage-1980.jpg"
-                />
-                <div className="absolute -bottom-8 -left-8 md:-left-16 bg-[#FDFBF7] p-8 border border-[#1C140E]/10 max-w-xs shadow-2xl">
-                  <span className="text-xs uppercase tracking-[0.2em] text-[#1C140E] block mb-2" style={{ fontFamily: "'Space Mono', monospace" }}>Rio das Ostras, 1980</span>
-                  <p className="italic text-[#4d4540]">"O segredo sempre foi o tempo e o respeito pela farinha."</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <section id="pd-cardapio" data-tema="meiodia" className="pd-cardapio">
+          <Surgir>
+            <p className="pd-hora">12h00. Hora de escolher.</p>
+            <h2>Monte a sua <em>encomenda.</em></h2>
+            <p className="pd-cardapio__apoio">Escolha o que vai levar e veja o total na hora. Nós separamos para você retirar no balcão.</p>
+          </Surgir>
+          <Encomenda />
         </section>
 
-        {/* Cardápio */}
-        <section id="artesanal" className="w-full bg-[#f5f3ef] py-20 padaria-hairline-t">
-          <div className="px-5 md:px-16 max-w-[1280px] mx-auto">
-            <div className="text-center mb-16">
-              <span className="text-xs uppercase tracking-[0.2em] text-[#7f756f] block mb-4" style={{ fontFamily: "'Space Mono', monospace" }}>Capítulo II</span>
-              <h2 className="text-4xl md:text-5xl font-semibold text-[#1C140E] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>Obras da Casa</h2>
-              <div className="w-16 h-px bg-[#1C140E] mx-auto opacity-30"></div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10 max-w-4xl mx-auto">
-              {lanches.map((l) => (
-                <div key={l.nome} className="flex items-baseline justify-between group">
-                  <h3 className="text-2xl text-[#1C140E] group-hover:text-[#C5A059] transition-colors duration-300" style={{ fontFamily: "'Playfair Display', serif" }}>
-                    {l.nome} {l.extra && <span className="text-xs ml-2 text-[#4d4540]">{l.extra}</span>}
-                  </h3>
-                  <div className="flex-grow border-b border-dotted border-[#1C140E]/30 mx-4 relative -top-1.5"></div>
-                  <div className="text-xs tracking-widest text-[#1C140E]" style={{ fontFamily: "'Space Mono', monospace" }}>{l.preco}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-20 max-w-2xl mx-auto text-center relative pt-8">
-              <Quote className="absolute top-0 left-1/2 -translate-x-1/2 text-[#1C140E]/10" size={48} />
-              <p className="text-2xl md:text-[28px] leading-snug italic text-[#1C140E] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
-                "O melhor pão na chapa de toda a Região dos Lagos. O gosto de infância que permanece intacto."
-              </p>
-              <span className="text-xs uppercase tracking-[0.2em] text-[#7f756f]" style={{ fontFamily: "'Space Mono', monospace" }}>- Cliente desde 1995</span>
-            </div>
-          </div>
+        <section id="pd-historia" data-tema="tarde" className="pd-historia" ref={historiaRef}>
+          <motion.figure className="pd-historia__foto" style={reduzido ? undefined : { rotate: inclinacao }}>
+            <img src="/images/exemplos/padaria/maos-pao.jpg" alt="Mãos de padeiro segurando um pão de casca dourada" loading="lazy" width="1600" height="1067" />
+          </motion.figure>
+          <Surgir className="pd-historia__texto">
+            <p className="pd-hora">16h00. O forno descansa, a conversa não.</p>
+            <h2>Começou com um forno a lenha, em <em>1980.</em></h2>
+            <p>A Padaria do Seu Antônio nasceu pequena, no coração de Rio das Ostras. As receitas continuam as mesmas, e cada massa ainda fermenta o tempo que precisa.</p>
+            <blockquote>
+              <p>“O melhor pão na chapa de toda a Região dos Lagos. É o gosto da minha infância.”</p>
+              <cite>Cliente desde 1995</cite>
+            </blockquote>
+          </Surgir>
         </section>
 
-        {/* Encomendas */}
-        <section id="encomendar" className="w-full bg-[#1C140E] text-[#FDFBF7] py-20">
-          <div className="px-5 md:px-16 max-w-[1280px] mx-auto text-center flex flex-col items-center">
-            <span className="text-xs uppercase tracking-[0.2em] text-[#C5A059] block mb-6" style={{ fontFamily: "'Space Mono', monospace" }}>Capítulo Final</span>
-            <h2 className="text-5xl md:text-[64px] leading-tight font-bold mb-10 max-w-3xl" style={{ fontFamily: "'Playfair Display', serif" }}>Leve o nosso legado para a sua mesa.</h2>
-            <div className="flex flex-col md:flex-row gap-8 items-center justify-center mb-12 w-full max-w-2xl">
-              <div className="flex flex-col items-center gap-2 p-6 border border-[#FDFBF7]/20 w-full md:w-1/2">
-                <Phone className="text-[#C5A059] mb-2" size={22} />
-                <span className="text-xs uppercase tracking-[0.2em] opacity-70" style={{ fontFamily: "'Space Mono', monospace" }}>Ligue para nós</span>
-                <span className="text-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>(22) 99999-9999</span>
-              </div>
-              <div className="flex flex-col items-center gap-2 p-6 border border-[#FDFBF7]/20 w-full md:w-1/2">
-                <MapPin className="text-[#C5A059] mb-2" size={22} />
-                <span className="text-xs uppercase tracking-[0.2em] opacity-70" style={{ fontFamily: "'Space Mono', monospace" }}>Visite-nos</span>
-                <span className="text-xl text-center" style={{ fontFamily: "'Playfair Display', serif" }}>Rua Bonfim, 899<br />Rio das Ostras</span>
-              </div>
-            </div>
-            <a href="tel:+5522999999999" className="bg-[#C5A059] text-[#1C140E] px-10 py-5 text-xs uppercase tracking-[0.2em] font-bold hover:bg-[#FDFBF7] transition-colors duration-300" style={{ fontFamily: "'Space Mono', monospace" }}>
-              Fazer Encomenda Agora
-            </a>
+        <section id="pd-visita" data-tema="noite" className="pd-visita">
+          <Surgir>
+            <p className="pd-hora">19h30. Última chance de levar pão para casa.</p>
+            <h2>Passa <em>aqui.</em></h2>
+          </Surgir>
+          <div className="pd-visita__dados">
+            <Surgir><MapPin aria-hidden="true" /><h3>Endereço</h3><p>Rua Bonfim, 899<br />Rio das Ostras, RJ</p></Surgir>
+            <Surgir atraso={0.08}><Clock aria-hidden="true" /><h3>Horário</h3><p>Todos os dias<br />das {ABRE}h às {FECHA}h</p></Surgir>
+            <Surgir atraso={0.16}><Phone aria-hidden="true" /><h3>Telefone</h3><p><a href="tel:+5522999999999">(22) 99999-9999</a></p></Surgir>
           </div>
         </section>
       </main>
 
-      <footer className="w-full bg-[#f5f3ef] border-t border-[#1C140E]/10">
-        <div className="w-full px-5 md:px-16 py-16 flex flex-col md:flex-row justify-between items-start gap-8 max-w-[1280px] mx-auto">
-          <div className="flex flex-col gap-4 max-w-xs">
-            <div className="text-2xl font-semibold text-[#1C140E]" style={{ fontFamily: "'Playfair Display', serif" }}>Padaria do Seu Antônio</div>
-            <p className="text-sm text-[#4d4540]">© 1980 Padaria do Seu Antônio. Excelência Premiada em Panificação.</p>
-          </div>
-          <div className="flex flex-col md:flex-row gap-8 md:gap-16">
-            <div className="flex flex-col gap-4">
-              <span className="text-xs uppercase tracking-[0.2em] text-[#1C140E]" style={{ fontFamily: "'Space Mono', monospace" }}>Contato</span>
-              <span className="text-sm text-[#4d4540]">Rio das Ostras, RJ</span>
-            </div>
-            <div className="flex flex-col gap-4">
-              <span className="text-xs uppercase tracking-[0.2em] text-[#1C140E]" style={{ fontFamily: "'Space Mono', monospace" }}>Social</span>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-sm text-[#4d4540] hover:text-[#C5A059] transition-colors">Instagram</a>
-            </div>
-          </div>
-        </div>
+      <footer className="pd-rodape">
+        <p>Site de exemplo. A padaria, os preços, os horários e os dados de contato são fictícios. Fotos: Pexels.</p>
+        <Link to="/">Criado pela ARRC Sistemas</Link>
       </footer>
     </div>
   );

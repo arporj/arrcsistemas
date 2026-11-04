@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "arrcsistemas",
+      "name": "arrcsistemas-previa",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3700,
+      "runtimeArgs": ["run", "dev:previa"],
+      "port": 3702,
       "autoPort": false
     }
   ]

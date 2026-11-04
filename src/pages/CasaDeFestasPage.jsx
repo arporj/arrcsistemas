@@ -1,331 +1,370 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronDown, Menu, X } from 'lucide-react';
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CONVIDADOS_MAXIMO, CONVIDADOS_MINIMO, calcularMontagem } from '@/dominio/festas';
+import { emailValido, irPara } from '@/components/exemplos/utilitarios';
 import './CasaDeFestasPage.css';
 
-const eventos = [
-  {
-    numeral: 'I.',
-    nome: 'Casamentos',
-    desc: 'Celebrações íntimas ou grandiosas, desenhadas sob medida. Nossos salões oferecem o cenário perfeito para selar compromissos eternos, com um serviço de protocolo impecável.',
-    img: '/images/exemplos/casa-de-festas/casamentos.jpg',
-    cta: 'Explorar Visão',
-    imgFirst: false,
-  },
-  {
-    numeral: 'II.',
-    nome: 'Corporativo',
-    desc: 'Eleve a imagem da sua marca. Simpósios, lançamentos e galas executivas executadas com precisão cirúrgica e discrição absoluta, em um ambiente que respira sucesso.',
-    img: '/images/exemplos/casa-de-festas/corporativo.jpg',
-    cta: 'Detalhes Técnicos',
-    imgFirst: true,
-  },
-  {
-    numeral: 'III.',
-    nome: 'Formaturas',
-    desc: 'O culminar de uma jornada merece um palco à altura. Bailes de gala inesquecíveis com infraestrutura completa de som, luz e gastronomia de vanguarda.',
-    img: '/images/exemplos/casa-de-festas/formaturas.jpg',
-    cta: null,
-    imgFirst: false,
-  },
-  {
-    numeral: 'IV.',
-    nome: 'Aniversários',
-    desc: 'Marcos temporais celebrados com exclusividade. Festas privativas que refletem a personalidade única do anfitrião, envolvidas em uma atmosfera de mistério e fascínio.',
-    img: '/images/exemplos/casa-de-festas/aniversarios.jpg',
-    cta: null,
-    imgFirst: true,
-  },
+const FOTOS = '/images/exemplos/casa-de-festas';
+
+const foto = {
+  claro: { src: `${FOTOS}/salao-claro.jpg`, alt: 'Salão claro com mesas redondas, cadeiras brancas e lustres' },
+  branca: { src: `${FOTOS}/mesa-branca.jpg`, alt: 'Mesa branca com velas azuis e arranjo de folhas' },
+  menu: { src: `${FOTOS}/menu-velas.jpg`, alt: 'Cardápio impresso sobre prato dourado, com velas flutuantes' },
+  velas: { src: `${FOTOS}/mesa-velas.jpg`, alt: 'Mesa longa de banquete com velas e orquídeas' },
+  luzes: { src: `${FOTOS}/salao-luzes.jpg`, alt: 'Mesa posta com sousplat dourado e flores em salão iluminado' },
+  moderno: { src: `${FOTOS}/salao-moderno.jpg`, alt: 'Salão moderno com lírios, mesas de toalha branca e iluminação de palco' },
+};
+
+const colunas = [
+  { fotos: [foto.claro, foto.velas, foto.menu], faixa: ['-3%', '-22%'] },
+  { fotos: [foto.menu, foto.branca, foto.luzes], faixa: ['-24%', '-5%'] },
+  { fotos: [foto.moderno, foto.claro, foto.branca], faixa: ['-22%', '-3%'] },
+  { fotos: [foto.velas, foto.luzes, foto.moderno], faixa: ['-5%', '-24%'] },
 ];
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 1, ease: 'easeOut' } },
+const REPETICOES_COLUNA = 3;
+
+const eventos = [
+  { id: 'casamento', nome: 'Casamentos', texto: 'Cerimônia e recepção no mesmo lugar, com uma equipe do ensaio ao último brinde.', foto: foto.velas },
+  { id: 'corporativo', nome: 'Corporativo', texto: 'Lançamentos e jantares de empresa, com som, projeção e serviço no horário da pauta.', foto: foto.moderno },
+  { id: 'formatura', nome: 'Formaturas', texto: 'Baile completo, com pista, luz e gastronomia para a família inteira da turma.', foto: foto.luzes },
+  { id: 'aniversario', nome: 'Aniversários', texto: 'Festas particulares com a cara de quem faz aniversário, dos 15 aos 80 anos.', foto: { src: `${FOTOS}/baloes.jpg`, alt: 'Balões coloridos sobre confetes' } },
+];
+
+const formatos = [
+  { id: 'banquete', nome: 'Jantar à mesa' },
+  { id: 'coquetel', nome: 'Coquetel' },
+];
+
+const DIAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const inicioDoDia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const dataCurta = (d) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+// Agenda simulada, sempre igual para o mesmo dia: sábados e parte das sextas aparecem ocupados.
+const dataReservada = (d) => {
+  const semana = d.getDay();
+  const semente = d.getDate() * 7 + d.getMonth() * 3;
+  return (semana === 6 && semente % 2 === 0) || (semana === 5 && semente % 5 === 0);
+};
+
+const ColunaFotos = ({ coluna, progresso, reduzido }) => {
+  const y = useTransform(progresso, [0, 1], coluna.faixa);
+  return (
+    <motion.div className="fe-coluna" style={reduzido ? undefined : { y }} aria-hidden="true">
+      {Array.from({ length: REPETICOES_COLUNA }, () => coluna.fotos).flat().map((f, i) => <img key={`${f.src}-${i}`} src={f.src} alt="" />)}
+    </motion.div>
+  );
+};
+
+const Abertura = ({ reduzido }) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
+  const aparecer = (atraso) => (reduzido ? {} : {
+    initial: { opacity: 0, y: 26 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 1.2, delay: atraso, ease: [0.16, 1, 0.3, 1] },
+  });
+
+  return (
+    <header ref={ref} className="fe-abertura">
+      <div className="fe-abertura__fixo">
+        <div className="fe-colunas fe-colunas--esquerda">
+          <ColunaFotos coluna={colunas[0]} progresso={scrollYProgress} reduzido={reduzido} />
+          <ColunaFotos coluna={colunas[1]} progresso={scrollYProgress} reduzido={reduzido} />
+        </div>
+        <div className="fe-abertura__centro">
+          <motion.p className="fe-sobrelinha" {...aparecer(0.1)}>Casa de festas em Rio das Ostras</motion.p>
+          <motion.h1 {...aparecer(0.2)}>Encanto</motion.h1>
+          <motion.p className="fe-abertura__frase" {...aparecer(0.35)}>Luz natural, jardins e uma equipe que cuida de tudo para você só aproveitar a festa.</motion.p>
+          <motion.a href="#fe-convite" onClick={irPara('fe-convite')} className="fe-botao" {...aparecer(0.5)}>Agendar uma visita <ArrowRight size={18} /></motion.a>
+        </div>
+        <div className="fe-colunas fe-colunas--direita">
+          <ColunaFotos coluna={colunas[2]} progresso={scrollYProgress} reduzido={reduzido} />
+          <ColunaFotos coluna={colunas[3]} progresso={scrollYProgress} reduzido={reduzido} />
+        </div>
+      </div>
+    </header>
+  );
+};
+
+const Eventos = ({ aoEscolher }) => {
+  const [ativo, setAtivo] = useState(eventos[0].id);
+  return (
+    <section id="fe-eventos" className="fe-eventos">
+      <div className="fe-secao-topo">
+        <p className="fe-sobrelinha">O que celebramos</p>
+        <h2>Cada festa pede um <em>cenário.</em></h2>
+      </div>
+      <div className="fe-paineis">
+        {eventos.map((ev) => {
+          const aberto = ativo === ev.id;
+          return (
+            <article key={ev.id} className={aberto ? 'fe-painel fe-painel--aberto' : 'fe-painel'} onPointerEnter={(e) => e.pointerType === 'mouse' && setAtivo(ev.id)}>
+              <img src={ev.foto.src} alt={ev.foto.alt} loading="lazy" />
+              <button type="button" className="fe-painel__titulo" onClick={() => setAtivo(ev.id)} aria-expanded={aberto}>
+                <span>{ev.nome}</span>
+              </button>
+              <div className="fe-painel__corpo" hidden={!aberto}>
+                <p>{ev.texto}</p>
+                <button type="button" className="fe-link fe-link--claro" onClick={() => aoEscolher(ev.id)}>Quero este evento <ArrowRight size={16} /></button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
+const posicoesDasMesas = (total) => {
+  const LARGURA = 360;
+  const ALTURA = 200;
+  const TOPO_PISTA = 46;
+  const colunasMesas = Math.max(3, Math.ceil(Math.sqrt(total * (LARGURA / (ALTURA - TOPO_PISTA)))));
+  const linhas = Math.ceil(total / colunasMesas);
+  const passoX = LARGURA / colunasMesas;
+  const passoY = (ALTURA - TOPO_PISTA) / linhas;
+  const raio = Math.max(3.2, Math.min(passoX, passoY) * 0.36);
+  return Array.from({ length: total }, (_, i) => ({
+    cx: passoX * ((i % colunasMesas) + 0.5),
+    cy: TOPO_PISTA + passoY * (Math.floor(i / colunasMesas) + 0.5),
+    r: raio,
+  }));
+};
+
+const Simulador = ({ reduzido }) => {
+  const [convidados, setConvidados] = useState(120);
+  const [formato, setFormato] = useState('banquete');
+  const montagem = useMemo(() => calcularMontagem(convidados, formato), [convidados, formato]);
+  const mesas = useMemo(() => posicoesDasMesas(montagem.mesas), [montagem.mesas]);
+  const mola = reduzido ? { duration: 0 } : { type: 'spring', stiffness: 170, damping: 20 };
+
+  return (
+    <section className="fe-simulador">
+      <div className="fe-secao-topo">
+        <p className="fe-sobrelinha">Monte sua festa</p>
+        <h2>Quantas pessoas você quer <em>por perto?</em></h2>
+      </div>
+      <div className="fe-simulador__grade">
+        <div className="fe-simulador__controles">
+          <label htmlFor="fe-convidados">Convidados</label>
+          <output htmlFor="fe-convidados" className="fe-simulador__numero">{convidados}</output>
+          <input
+            id="fe-convidados"
+            type="range"
+            min={CONVIDADOS_MINIMO}
+            max={CONVIDADOS_MAXIMO}
+            step="10"
+            value={convidados}
+            onChange={(e) => setConvidados(Number(e.target.value))}
+          />
+          <div className="fe-formatos" role="group" aria-label="Formato da festa">
+            {formatos.map((f) => (
+              <button type="button" key={f.id} aria-pressed={formato === f.id} className={formato === f.id ? 'fe-formato fe-formato--ativo' : 'fe-formato'} onClick={() => setFormato(f.id)}>
+                {formato === f.id && <Check size={16} aria-hidden="true" />} {f.nome}
+              </button>
+            ))}
+          </div>
+          <p className="fe-simulador__resultado" aria-live="polite">
+            <strong>{montagem.salao.nome}</strong>, com {montagem.mesas} mesas para {montagem.pessoasPorMesa} pessoas.
+          </p>
+          <p className="fe-simulador__nota">Simulação ilustrativa. A planta final é feita com a nossa equipe.</p>
+        </div>
+        <div className="fe-planta">
+          <svg viewBox="0 0 360 200" role="img" aria-label={`Planta do salão com ${montagem.mesas} mesas e pista de dança`}>
+            <rect x="110" y="6" width="140" height="30" rx="3" className="fe-planta__pista" />
+            <text x="180" y="25" textAnchor="middle" className="fe-planta__texto">pista de dança</text>
+            {mesas.map((m, i) => (
+              <motion.circle
+                key={i}
+                className="fe-planta__mesa"
+                initial={reduzido ? false : { cx: 180, cy: 21, r: 0 }}
+                animate={{ cx: m.cx, cy: m.cy, r: m.r }}
+                transition={mola}
+              />
+            ))}
+          </svg>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Calendario = ({ selecionada, aoSelecionar }) => {
+  const hoje = useMemo(() => inicioDoDia(new Date()), []);
+  const [mes, setMes] = useState(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+  const noMesAtual = mes.getFullYear() === hoje.getFullYear() && mes.getMonth() === hoje.getMonth();
+  const totalDias = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
+  const titulo = mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const mudarMes = (delta) => setMes(new Date(mes.getFullYear(), mes.getMonth() + delta, 1));
+
+  return (
+    <div className="fe-calendario">
+      <div className="fe-calendario__topo">
+        <button type="button" onClick={() => mudarMes(-1)} disabled={noMesAtual} aria-label="Mês anterior"><ChevronLeft size={20} /></button>
+        <p aria-live="polite">{titulo}</p>
+        <button type="button" onClick={() => mudarMes(1)} aria-label="Próximo mês"><ChevronRight size={20} /></button>
+      </div>
+      <div className="fe-calendario__grade">
+        {DIAS_SEMANA.map((d, i) => <span key={`${d}-${i}`} className="fe-calendario__semana" aria-hidden="true">{d}</span>)}
+        {Array.from({ length: mes.getDay() }, (_, i) => <span key={`vazio-${i}`} />)}
+        {Array.from({ length: totalDias }, (_, i) => {
+          const dia = new Date(mes.getFullYear(), mes.getMonth(), i + 1);
+          const passado = dia < hoje;
+          const reservada = !passado && dataReservada(dia);
+          const marcada = selecionada && dia.getTime() === selecionada.getTime();
+          const situacao = reservada ? ', reservada' : marcada ? ', escolhida' : '';
+          return (
+            <button
+              type="button"
+              key={i}
+              disabled={passado || reservada}
+              onClick={() => aoSelecionar(dia)}
+              aria-pressed={Boolean(marcada)}
+              aria-label={`${dataCurta(dia)}${situacao}`}
+              className={`fe-dia${reservada ? ' fe-dia--reservada' : ''}${marcada ? ' fe-dia--marcada' : ''}`}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+      <p className="fe-calendario__legenda">Datas riscadas já estão reservadas. Agenda ilustrativa.</p>
+    </div>
+  );
+};
+
+const validar = ({ nome, email, tipo }) => {
+  const erros = {};
+  if (nome.trim().length < 2) erros.nome = 'Conte seu nome para sabermos com quem falar.';
+  if (!emailValido(email)) erros.email = 'Confira o e-mail. Exemplo: voce@email.com.';
+  if (!tipo) erros.tipo = 'Escolha o tipo de evento.';
+  return erros;
+};
+
+const Convite = ({ form, setForm }) => {
+  const [data, setData] = useState(null);
+  const [erros, setErros] = useState({});
+  const [enviado, setEnviado] = useState(false);
+
+  const alterar = (campo) => (e) => {
+    const novo = { ...form, [campo]: e.target.value };
+    setForm(novo);
+    if (erros[campo]) setErros((a) => ({ ...a, [campo]: validar(novo)[campo] }));
+  };
+
+  const enviar = (e) => {
+    e.preventDefault();
+    const encontrados = validar(form);
+    setErros(encontrados);
+    if (Object.keys(encontrados).length === 0) setEnviado(true);
+  };
+
+  const propsCampo = (campo) => ({
+    id: `fe-${campo}`,
+    value: form[campo],
+    onChange: alterar(campo),
+    'aria-invalid': Boolean(erros[campo]),
+    'aria-describedby': erros[campo] ? `fe-${campo}-erro` : undefined,
+  });
+  const erroDe = (campo) => erros[campo] && <p id={`fe-${campo}-erro`} className="fe-erro" role="alert">{erros[campo]}</p>;
+
+  return (
+    <section id="fe-convite" className="fe-convite">
+      <div className="fe-secao-topo">
+        <p className="fe-sobrelinha">Sua data</p>
+        <h2>Venha conhecer o salão <em>antes de decidir.</em></h2>
+      </div>
+      <div className="fe-convite__grade">
+        <Calendario selecionada={data} aoSelecionar={setData} />
+        {enviado ? (
+          <motion.div className="fe-resposta" role="status" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+            <span className="fe-resposta__icone"><Check size={28} aria-hidden="true" /></span>
+            <h3>Pedido preenchido, {form.nome.trim().split(' ')[0]}.</h3>
+            <p>Este é um site de demonstração, então nada foi enviado nem guardado. No site de verdade, o pedido de visita chegaria à equipe da casa.</p>
+          </motion.div>
+        ) : (
+          <form onSubmit={enviar} noValidate className="fe-form">
+            <p className="fe-form__data">{data ? `Visita no dia ${dataCurta(data)}` : 'Escolha um dia no calendário, se já tiver uma data em mente.'}</p>
+            <div className="fe-campo">
+              <label htmlFor="fe-nome">Seu nome</label>
+              <input {...propsCampo('nome')} type="text" autoComplete="name" />
+              {erroDe('nome')}
+            </div>
+            <div className="fe-campo">
+              <label htmlFor="fe-email">E-mail</label>
+              <input {...propsCampo('email')} type="email" inputMode="email" autoComplete="email" />
+              {erroDe('email')}
+            </div>
+            <div className="fe-campo">
+              <label htmlFor="fe-tipo">Tipo de evento</label>
+              <select {...propsCampo('tipo')}>
+                <option value="">Escolha uma opção</option>
+                {eventos.map((ev) => <option key={ev.id} value={ev.id}>{ev.nome}</option>)}
+                <option value="outro">Outro</option>
+              </select>
+              {erroDe('tipo')}
+            </div>
+            <div className="fe-campo">
+              <label htmlFor="fe-mensagem">Como você imagina a festa? (opcional)</label>
+              <textarea {...propsCampo('mensagem')} rows={2} />
+            </div>
+            <button type="submit" className="fe-botao fe-botao--inteiro">Pedir minha visita <ArrowRight size={18} /></button>
+          </form>
+        )}
+      </div>
+    </section>
+  );
 };
 
 const CasaDeFestasPage = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ nome: '', email: '', tipo: '', data: '', mensagem: '' });
+  const reduzido = useReducedMotion();
+  const [form, setForm] = useState({ nome: '', email: '', tipo: '', mensagem: '' });
 
-  useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
+  const escolherEvento = (id) => {
+    setForm((atual) => ({ ...atual, tipo: id }));
+    document.getElementById('fe-convite')?.scrollIntoView({ behavior: reduzido ? 'auto' : 'smooth' });
   };
 
   return (
-    <div className="encanto-page min-h-screen antialiased overflow-x-hidden selection:bg-[#d4af37] selection:text-black">
+    <div className="encanto-page">
       <Helmet>
         <title>Casa de Festas Encanto | Exemplo ARRC Sistemas</title>
-        <meta name="description" content="Exemplo de site premium para espaço de eventos, desenvolvido pela ARRC Sistemas." />
+        <meta name="description" content="Exemplo de site para casa de festas, com galeria em movimento, simulador de mesas e agenda interativa, desenvolvido pela ARRC Sistemas." />
       </Helmet>
-      <div className="encanto-film-grain"></div>
 
-      <Link
-        to="/"
-        className="fixed bottom-5 left-5 z-50 flex items-center gap-2 bg-[#d4af37] text-black text-xs uppercase tracking-widest px-4 py-2 rounded-full shadow-lg hover:bg-[#e2e2e2] transition-colors"
-      >
-        <ArrowLeft size={14} /> ARRC Sistemas
-      </Link>
+      <a href="#fe-conteudo" className="fe-pular">Pular para o conteúdo</a>
+      <Link to="/" className="fe-voltar"><ArrowLeft size={16} /> ARRC Sistemas</Link>
 
-      <nav className={`fixed top-0 w-full z-40 transition-all duration-700 ease-in-out px-6 md:px-20 py-6 md:py-8 ${
-        isScrolled || mobileOpen ? 'bg-black/90 backdrop-blur-md border-b border-[#444748]/20' : 'bg-gradient-to-b from-black/40 to-transparent'
-      }`}>
-        <div className="flex justify-between items-center">
-          <span className="text-lg md:text-2xl tracking-tighter text-[#e9c349]" style={{ fontFamily: "'Playfair Display', serif" }}>CASA DE FESTAS ENCANTO</span>
-          <div className="hidden md:flex items-center space-x-12">
-            <span className="text-xs tracking-[0.2em] uppercase text-[#e9c349] border-b border-[#e9c349] pb-1">O Espaço</span>
-            <span className="text-xs tracking-[0.2em] uppercase text-[#c4c7c7] hover:text-[#e9c349] transition-colors duration-500 cursor-default">Experiências</span>
-            <span className="text-xs tracking-[0.2em] uppercase text-[#c4c7c7] hover:text-[#e9c349] transition-colors duration-500 cursor-default">Eventos Privados</span>
-            <button
-              onClick={() => document.getElementById('contato')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-xs tracking-[0.2em] uppercase border border-[#d4af37] text-[#d4af37] px-8 py-3 hover:bg-[#d4af37] hover:text-black transition-all duration-500"
-            >
-              Reservar Agora
-            </button>
-          </div>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-[#e9c349]" aria-label="Abrir menu">
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-        {mobileOpen && (
-          <div className="md:hidden flex flex-col gap-6 pt-8 pb-4">
-            <span className="text-xs tracking-[0.2em] uppercase text-[#e9c349]">O Espaço</span>
-            <span className="text-xs tracking-[0.2em] uppercase text-[#c4c7c7]">Experiências</span>
-            <span className="text-xs tracking-[0.2em] uppercase text-[#c4c7c7]">Eventos Privados</span>
-            <button
-              onClick={() => { document.getElementById('contato')?.scrollIntoView({ behavior: 'smooth' }); setMobileOpen(false); }}
-              className="text-xs tracking-[0.2em] uppercase border border-[#d4af37] text-[#d4af37] px-8 py-3 w-fit hover:bg-[#d4af37] hover:text-black transition-all duration-500"
-            >
-              Reservar Agora
-            </button>
-          </div>
-        )}
-      </nav>
+      <Abertura reduzido={reduzido} />
 
-      {/* Hero */}
-      <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="bg-cover bg-center w-full h-full scale-105" style={{ backgroundImage: "url('/images/exemplos/casa-de-festas/hero-hall.jpg')" }}></div>
-          <div className="absolute inset-0 bg-black/60"></div>
-        </div>
-        <div className="relative z-10 text-center max-w-5xl mx-auto px-6 mt-20">
-          <motion.h1 initial="hidden" animate="visible" variants={fadeUp} className="text-5xl md:text-8xl text-[#e2e2e2] mb-8 tracking-tighter drop-shadow-2xl" style={{ fontFamily: "'Playfair Display', serif" }}>
-            A Arte de Celebrar<br />O Extraordinário
-          </motion.h1>
-          <motion.p initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.2 }} className="text-lg md:text-xl font-light text-[#c4c7c7] max-w-2xl mx-auto mb-12">
-            Onde a arquitetura clássica encontra a sofisticação moderna. Um santuário para momentos inesquecíveis, desenhado para a mais alta exigência.
-          </motion.p>
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.4 }}>
-            <button onClick={() => document.getElementById('discover')?.scrollIntoView({ behavior: 'smooth' })} className="inline-flex flex-col items-center text-[#c4c7c7] hover:text-[#e9c349] transition-colors duration-500">
-              <span className="text-xs tracking-[0.2em] uppercase mb-4">Descobrir</span>
-              <ChevronDown className="animate-bounce" size={28} />
-            </button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Editorial Intro */}
-      <section id="discover" className="py-40 px-6 md:px-20 max-w-[1440px] mx-auto">
-        <div className="grid grid-cols-12 gap-8 items-center">
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="col-span-12 md:col-span-5 md:col-start-2"
+      <main id="fe-conteudo">
+        <Eventos aoEscolher={escolherEvento} />
+        <Simulador reduzido={reduzido} />
+        <section className="fe-depoimento">
+          <motion.blockquote
+            initial={reduzido ? false : { opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-15% 0px' }}
+            transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h2 className="text-4xl md:text-5xl text-[#e2e2e2] mb-8" style={{ fontFamily: "'Playfair Display', serif" }}>Refúgio de<br />Elegância</h2>
-            <p className="text-base text-[#c4c7c7] mb-6 font-light leading-relaxed">
-              A Casa de Festas Encanto não é apenas um espaço; é uma experiência curada. Cada detalhe, desde os salões amplos banhados por luz natural até os jardins meticulosamente desenhados, reflete um compromisso inabalável com a excelência estética e o conforto absoluto.
-            </p>
-            <div className="h-px w-24 bg-[#d4af37] mt-12"></div>
-          </motion.div>
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }}
-            className="col-span-12 md:col-span-4 md:col-start-9 relative mt-12 md:mt-0"
-          >
-            <div className="aspect-[3/4] bg-[#1a1c1c] encanto-ambient-shadow relative z-10">
-              <img className="object-cover w-full h-full grayscale-[20%] hover:grayscale-0 transition-all duration-700" src="/images/exemplos/casa-de-festas/table-setting.jpg" alt="Mesa posta luxuosa" />
-            </div>
-            <div className="absolute -bottom-10 -left-10 w-full h-full border border-[#444748]/30 z-0"></div>
-          </motion.div>
-        </div>
-      </section>
+            <p>“O serviço foi invisível e impecável. Meus convidados só precisaram aproveitar a festa.”</p>
+            <cite>Família Monteiro</cite>
+          </motion.blockquote>
+        </section>
+        <Convite form={form} setForm={setForm} />
+      </main>
 
-      {/* Quote */}
-      <section className="py-32 overflow-hidden bg-[#1a1c1c] relative">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-20">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="relative z-10 pl-12 md:pl-24 border-l border-[#d4af37]/30">
-            <p className="text-3xl md:text-5xl text-[#e2e2e2] italic leading-tight opacity-90 max-w-4xl" style={{ fontFamily: "'Playfair Display', serif" }}>
-              "O silêncio do luxo fala mais alto que qualquer opulência. Nós orquestramos a atmosfera; você vive a memória."
-            </p>
-            <p className="text-xs tracking-[0.2em] text-[#d4af37] uppercase mt-12">A Direção</p>
-          </motion.div>
-        </div>
-        <div className="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-[#121414] to-transparent opacity-50 z-0"></div>
-      </section>
-
-      {/* Event Types */}
-      <section className="py-40 px-6 md:px-20 max-w-[1440px] mx-auto">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="mb-24 flex justify-between items-end">
-          <h2 className="text-4xl md:text-5xl text-[#e2e2e2]" style={{ fontFamily: "'Playfair Display', serif" }}>Curadoria de<br />Eventos</h2>
-          <div className="hidden md:block h-px w-32 bg-[#444748]/50 mb-4"></div>
-        </motion.div>
-
-        <div className="grid grid-cols-12 gap-y-24 md:gap-y-32 gap-x-8">
-          {eventos.map((ev) => (
-            <div key={ev.numeral} className="col-span-12 group">
-              <div className="grid grid-cols-12 gap-8 items-center">
-                {!ev.imgFirst && (
-                  <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="col-span-12 md:col-span-5 relative z-10">
-                    <span className="text-2xl text-[#d4af37] mb-6 block" style={{ fontFamily: "'Playfair Display', serif" }}>{ev.numeral}</span>
-                    <h3 className="text-3xl text-[#e2e2e2] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>{ev.nome}</h3>
-                    <p className="text-base text-[#c4c7c7] mb-8 max-w-md font-light leading-relaxed">{ev.desc}</p>
-                    {ev.cta && (
-                      <span className="inline-flex items-center space-x-4 text-xs uppercase text-[#e2e2e2] group-hover:text-[#d4af37] transition-colors duration-300">
-                        <span>{ev.cta}</span>
-                        <span className="w-8 h-px bg-current transition-all duration-300 group-hover:w-12"></span>
-                      </span>
-                    )}
-                  </motion.div>
-                )}
-                <motion.div
-                  initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }}
-                  className={`col-span-12 md:col-span-7 ${!ev.imgFirst ? 'md:col-start-6' : ''}`}
-                >
-                  <div className="aspect-[16/9] overflow-hidden encanto-ambient-shadow">
-                    <img className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" src={ev.img} alt={ev.nome} />
-                  </div>
-                </motion.div>
-                {ev.imgFirst && (
-                  <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }} className="col-span-12 md:col-span-4 md:col-start-9 relative z-10">
-                    <span className="text-2xl text-[#d4af37] mb-6 block" style={{ fontFamily: "'Playfair Display', serif" }}>{ev.numeral}</span>
-                    <h3 className="text-3xl text-[#e2e2e2] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>{ev.nome}</h3>
-                    <p className="text-base text-[#c4c7c7] mb-8 font-light leading-relaxed">{ev.desc}</p>
-                    {ev.cta && (
-                      <span className="inline-flex items-center space-x-4 text-xs uppercase text-[#e2e2e2] group-hover:text-[#d4af37] transition-colors duration-300">
-                        <span>{ev.cta}</span>
-                        <span className="w-8 h-px bg-current transition-all duration-300 group-hover:w-12"></span>
-                      </span>
-                    )}
-                  </motion.div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Testimonial */}
-      <section className="py-40 bg-[#1a1c1c] border-y border-[#444748]/10">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-20 text-center">
-          <motion.span initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-xs tracking-[0.2em] text-[#8e9192] uppercase mb-16 block">
-            Reconhecimento
-          </motion.span>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }} className="max-w-4xl mx-auto relative">
-            <span className="absolute -top-10 -left-6 md:-left-10 text-8xl text-[#333535] opacity-50" style={{ fontFamily: "'Playfair Display', serif" }}>"</span>
-            <h4 className="text-2xl md:text-4xl text-[#e2e2e2] leading-tight mb-8" style={{ fontFamily: "'Playfair Display', serif" }}>
-              A execução superou a expectativa. A Casa Encanto entregou não apenas um espaço lindíssimo, mas um nível de serviço invisível e impecável que permitiu aos meus convidados apenas desfrutarem do momento.
-            </h4>
-            <p className="text-sm text-[#d4af37] uppercase tracking-widest">— Família Monteiro, Gala de Inverno</p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Form */}
-      <section id="contato" className="py-40 px-6 md:px-20 max-w-4xl mx-auto">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl text-[#e2e2e2] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>Inicie o Diálogo</h2>
-          <p className="text-base text-[#c4c7c7] font-light">Permita-nos compreender a sua visão. Preencha os dados abaixo para agendarmos uma visita privativa.</p>
-        </motion.div>
-
-        {submitted ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-[#1a1c1c] p-16 encanto-ambient-shadow text-center">
-            <h3 className="text-2xl text-[#e2e2e2] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Obrigado.</h3>
-            <p className="text-[#c4c7c7]">Sua solicitação foi recebida. Nossa equipe entrará em contato em breve para agendar sua visita privativa.</p>
-          </motion.div>
-        ) : (
-          <motion.form
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }}
-            onSubmit={handleSubmit}
-            className="bg-[#1a1c1c] p-8 md:p-16 encanto-ambient-shadow relative"
-          >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-[#d4af37]"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-              <div className="col-span-1 encanto-input-group">
-                <input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="encanto-lux-input" id="nome" placeholder="Nome Completo" type="text" />
-                <label className="encanto-lux-label" htmlFor="nome">Nome Completo</label>
-              </div>
-              <div className="col-span-1 encanto-input-group">
-                <input required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="encanto-lux-input" id="email" placeholder="Endereço Eletrônico" type="email" />
-                <label className="encanto-lux-label" htmlFor="email">Endereço Eletrônico</label>
-              </div>
-              <div className="col-span-1 encanto-input-group">
-                <select required value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className="encanto-lux-input appearance-none rounded-none" id="tipo">
-                  <option className="bg-[#121414]" disabled value="">Natureza do Evento</option>
-                  <option className="bg-[#121414]" value="casamento">Casamento</option>
-                  <option className="bg-[#121414]" value="corporativo">Corporativo</option>
-                  <option className="bg-[#121414]" value="formatura">Formatura</option>
-                  <option className="bg-[#121414]" value="outro">Outro (Especifique)</option>
-                </select>
-              </div>
-              <div className="col-span-1 encanto-input-group">
-                <input value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} className="encanto-lux-input" id="data" placeholder="Data Estimada (Opcional)" type="text" />
-                <label className="encanto-lux-label" htmlFor="data">Data Estimada (Opcional)</label>
-              </div>
-              <div className="col-span-1 md:col-span-2 encanto-input-group mt-4 md:mt-12">
-                <textarea
-                  value={form.mensagem}
-                  onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
-                  className="encanto-lux-input resize-none"
-                  id="mensagem"
-                  placeholder="Detalhes da sua visão"
-                  rows={1}
-                  onInput={(e) => { e.target.style.height = ''; e.target.style.height = e.target.scrollHeight + 'px'; }}
-                ></textarea>
-                <label className="encanto-lux-label" htmlFor="mensagem">Detalhes da sua visão</label>
-              </div>
-            </div>
-            <div className="mt-16 text-center">
-              <button type="submit" className="text-xs tracking-[0.2em] uppercase border border-[#d4af37] text-black bg-[#d4af37] px-12 py-4 hover:bg-transparent hover:text-[#d4af37] transition-all duration-500">
-                Solicitar Contato
-              </button>
-            </div>
-          </motion.form>
-        )}
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-[#121414] w-full relative border-t border-[#444748]/30">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 px-6 md:px-20 py-32 max-w-[1440px] mx-auto items-end relative">
-          <div className="col-span-12 md:col-span-5 mb-12 md:mb-0">
-            <h5 className="text-2xl text-[#e9c349] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>Casa de Festas Encanto</h5>
-            <p className="text-sm text-[#c4c7c7] max-w-xs mb-8 font-light">
-              Avenida Atlântica, 560<br />Rio das Ostras, RJ
-            </p>
-            <a className="text-sm text-[#e2e2e2] hover:text-[#e9c349] transition-colors duration-300 block mb-2" href="mailto:contato@casadefestasencanto.com.br">contato@casadefestasencanto.com.br</a>
-            <a className="text-sm text-[#e2e2e2] hover:text-[#e9c349] transition-colors duration-300 block" href="tel:+5522999999999">(22) 99999-9999</a>
-          </div>
-          <div className="col-span-12 md:col-span-7 flex flex-col md:items-end">
-            <div className="flex flex-col space-y-4 mb-16 md:text-right">
-              <span className="text-sm text-[#c4c7c7] font-light">I. Política de Privacidade</span>
-              <span className="text-sm text-[#c4c7c7] font-light">II. Termos de Serviço</span>
-              <span className="text-sm text-[#c4c7c7] font-light">III. Imprensa</span>
-              <span className="text-sm text-[#c4c7c7] font-light">IV. Carreiras</span>
-            </div>
-            <p className="text-sm text-[#8e9192]">© MMXXIV CASA DE FESTAS ENCANTO. TODOS OS DIREITOS RESERVADOS.</p>
-          </div>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none hidden md:block">
-            <span className="text-[10vw] text-[#e2e2e2] opacity-[0.02] whitespace-nowrap" style={{ fontFamily: "'Playfair Display', serif" }}>ENCANTO</span>
-          </div>
+      <footer className="fe-rodape">
+        <p className="fe-rodape__marca">Encanto</p>
+        <div>
+          <p>Avenida Atlântica, 560, Rio das Ostras, RJ</p>
+          <p><a href="tel:+5522999999999">(22) 99999-9999</a> · <a href="mailto:contato@casadefestasencanto.com.br">contato@casadefestasencanto.com.br</a></p>
+          <p>Site de exemplo. A casa, os salões, a agenda, o depoimento e os contatos são fictícios. Fotos: Pexels. <Link to="/">Criado pela ARRC Sistemas</Link>.</p>
         </div>
       </footer>
     </div>

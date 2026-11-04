@@ -1,252 +1,308 @@
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Truck, ShieldCheck, Calculator, Phone, Mail, Wrench, Layers, Menu, X } from 'lucide-react';
+import { AnimatePresence, motion, useMotionTemplate, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { ArrowDown, ArrowLeft, ClipboardList, Minus, Plus, X } from 'lucide-react';
+import CenaObra, { JANELAS_ETAPAS } from '@/components/constrular/CenaObra';
+import Planejador from '@/components/constrular/Planejador';
+import { catalogo } from '@/dominio/construcao';
+import { formatarReais, irPara, mascararTelefone, telefoneValido } from '@/components/exemplos/utilitarios';
 import './ConstrucaoPage.css';
 
-const produtos = [
-  {
-    specId: 'SPEC_ID: T-PRO-20V',
-    icon: Wrench,
-    img: '/images/exemplos/constrular/produto-furadeira.jpg',
-    nome: 'Furadeira Titan Pro 20V',
-    specs: [
-      { label: 'TORQUE MÁXIMO', value: '120 Nm' },
-      { label: 'ROTAÇÃO', value: '2100 RPM' },
-    ],
-    precoLabel: 'PREÇO UNIT. (B2B)',
-    preco: 'R$ 1.240,00',
-  },
-  {
-    specId: 'SPEC_ID: SLT-ULTRA-90',
-    icon: Layers,
-    img: '/images/exemplos/constrular/produto-porcelanato.jpg',
-    nome: 'Porcelanato Slate Ultra',
-    specs: [
-      { label: 'DIMENSÕES', value: '90x90 cm' },
-      { label: 'RESISTÊNCIA', value: 'PEI 5 / Alto Tráfego' },
-    ],
-    precoLabel: 'PREÇO M² (B2B)',
-    preco: 'R$ 185,90',
-  },
+const etapas = [
+  { nome: 'Fundação', titulo: 'Primeiro, a base firme.', itens: ['cimento', 'areia'] },
+  { nome: 'Alvenaria', titulo: 'Parede sobe no prumo.', itens: ['tijolo'] },
+  { nome: 'Cobertura', titulo: 'Telhado antes da chuva.', itens: ['telha'] },
+  { nome: 'Acabamento', titulo: 'A parte que todo mundo vê.', itens: ['porcelanato', 'tinta'] },
 ];
 
-const diferenciais = [
-  { icon: Truck, title: 'Logística Implacável', desc: 'Entregas programadas com precisão de minutos. Frotas dedicadas para obras de grande porte, minimizando tempo de inatividade.', tag: 'SLA: < 24H METROPOLITAN' },
-  { icon: ShieldCheck, title: 'Marcas de Elite', desc: 'Homologação rigorosa de fornecedores. Trabalhamos exclusivamente com fabricantes que atendem ou excedem as normas ISO globais.', tag: 'CERT: ISO 9001:2015' },
-  { icon: Calculator, title: 'Engenharia de Custos', desc: 'Estruturas de preço agressivas para o mercado B2B. Negociações em volume que garantem viabilidade financeira para projetos complexos.', tag: 'MODEL: B2B DIRECT' },
+const fortes = [
+  { valor: '24h', titulo: 'Entrega na obra', texto: 'Para pedidos confirmados até as 15h, na região metropolitana.' },
+  { valor: '2h', titulo: 'Cotação respondida', texto: 'Mande a lista e receba o preço fechado, com frete.' },
+  { valor: 'ISO', titulo: 'Fornecedor conferido', texto: 'Trabalhamos com fabricantes certificados na ISO 9001.' },
 ];
 
-const scrollToId = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+const produto = (id) => catalogo.find((p) => p.id === id);
+const destaques = catalogo.filter((p) => p.foto);
+const demais = catalogo.filter((p) => !p.foto);
 
-const ConstrucaoPage = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
+const LinhaProduto = ({ id, aoAdicionar }) => {
+  const p = produto(id);
+  return (
+    <li className="co-etapa__item">
+      <span>{p.nome}<small>{formatarReais(p.preco)} por {p.unidade}</small></span>
+      <button type="button" onClick={() => aoAdicionar([{ id, quantidade: 1 }])} aria-label={`Colocar na lista: ${p.nome}`}><Plus size={18} /></button>
+    </li>
+  );
+};
+
+const PainelEtapa = ({ indice, aoAdicionar }) => {
+  const etapa = etapas[indice];
+  return (
+    <>
+      <p className="co-rotulo">Etapa {indice + 1} de {etapas.length}: {etapa.nome}</p>
+      <h2 className="co-etapa__titulo">{etapa.titulo}</h2>
+      <ul>{etapa.itens.map((id) => <LinhaProduto key={id} id={id} aoAdicionar={aoAdicionar} />)}</ul>
+    </>
+  );
+};
+
+const AberturaTexto = () => (
+  <>
+    <p className="co-rotulo">Materiais de construção</p>
+    <h1>Toda obra começa no papel.</h1>
+    <p className="co-abertura__apoio">A Constrular entrega o material de cada etapa, com preço fechado e direto na sua obra.</p>
+    <p className="co-abertura__dica"><ArrowDown size={18} aria-hidden="true" /> Role para ver a casa subir</p>
+  </>
+);
+
+const Obra = ({ aoAdicionar, reduzido }) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  const concluida = useMotionValue(1);
+  const [atual, setAtual] = useState(-1);
+
+  useMotionValueEvent(scrollYProgress, 'change', (p) => {
+    let indice = -1;
+    JANELAS_ETAPAS.forEach(([inicio], i) => {
+      if (p >= inicio) indice = i;
+    });
+    setAtual(indice);
+  });
+
+  if (reduzido) {
+    return (
+      <header className="co-obra co-obra--estatica">
+        <div className="co-obra__texto"><AberturaTexto /></div>
+        <CenaObra progresso={concluida} reduzido />
+        <div className="co-obra__lista">
+          {etapas.map((_, i) => <div key={etapas[i].nome}><PainelEtapa indice={i} aoAdicionar={aoAdicionar} /></div>)}
+        </div>
+      </header>
+    );
+  }
 
   return (
-    <div className="constrular-page min-h-screen flex flex-col antialiased selection:bg-[#ffb964] selection:text-[#10131a]">
+    <header ref={ref} className="co-obra">
+      <div className="co-obra__fixo">
+        <div className="co-obra__texto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={atual}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.28 }}
+            >
+              {atual < 0 ? <AberturaTexto /> : <PainelEtapa indice={atual} aoAdicionar={aoAdicionar} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        <div className="co-obra__cena"><CenaObra progresso={scrollYProgress} reduzido={false} /></div>
+        <ol className="co-obra__regua" aria-hidden="true">
+          {etapas.map((e, i) => <li key={e.nome} className={i <= atual ? 'co-obra__marca co-obra__marca--feita' : 'co-obra__marca'}>{e.nome}</li>)}
+        </ol>
+      </div>
+    </header>
+  );
+};
+
+const CasaPronta = ({ reduzido }) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  const margem = useTransform(scrollYProgress, [0, 1], [16, 0]);
+  const recorte = useMotionTemplate`inset(${margem}% ${margem}% ${margem}% ${margem}%)`;
+  const escala = useTransform(scrollYProgress, [0, 1], [1.22, 1]);
+
+  return (
+    <figure ref={ref} className="co-casa">
+      <motion.div className="co-casa__janela" style={reduzido ? undefined : { clipPath: recorte }}>
+        <motion.img src="/images/exemplos/constrular/casa-pronta.jpg" alt="Casa moderna cinza com portas de vidro e gramado" loading="lazy" width="1600" height="1068" style={reduzido ? undefined : { scale: escala }} />
+        <figcaption>Do papel para a <em>sua casa.</em></figcaption>
+      </motion.div>
+    </figure>
+  );
+};
+
+const Materiais = ({ aoAdicionar }) => (
+  <section id="co-materiais" className="co-materiais">
+    <header className="co-secao-topo">
+      <p className="co-rotulo">Materiais</p>
+      <h2>Da fundação ao acabamento.</h2>
+    </header>
+    <div className="co-destaques">
+      {destaques.map((p) => (
+        <motion.article key={p.id} className="co-destaque" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-10% 0px' }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
+          <div className="co-destaque__foto"><img src={p.foto} alt={p.alt} loading="lazy" /></div>
+          <div className="co-destaque__linha">
+            <div>
+              <h3>{p.nome}</h3>
+              <p>{p.medida} · {formatarReais(p.preco)} por {p.unidade}</p>
+            </div>
+            <button type="button" className="co-mais" onClick={() => aoAdicionar([{ id: p.id, quantidade: 1 }])} aria-label={`Colocar na lista: ${p.nome}`}><Plus size={20} /></button>
+          </div>
+        </motion.article>
+      ))}
+    </div>
+    <ul className="co-tabela">
+      {demais.map((p) => (
+        <li key={p.id}>
+          <span className="co-tabela__nome">{p.nome}</span>
+          <span className="co-tabela__medida">{p.medida}</span>
+          <span className="co-tabela__preco">{formatarReais(p.preco)}<small> por {p.unidade}</small></span>
+          <button type="button" className="co-mais" onClick={() => aoAdicionar([{ id: p.id, quantidade: 1 }])} aria-label={`Colocar na lista: ${p.nome}`}><Plus size={20} /></button>
+        </li>
+      ))}
+    </ul>
+  </section>
+);
+
+const validarCotacao = ({ nome, whatsapp }) => {
+  const erros = {};
+  if (nome.trim().length < 2) erros.nome = 'Escreva seu nome ou o nome da obra.';
+  if (!telefoneValido(whatsapp)) erros.whatsapp = 'Confira o número. Exemplo: (22) 99999-9999.';
+  return erros;
+};
+
+const ListaLateral = ({ aberta, aoFechar, lista, aoAlterar }) => {
+  const [form, setForm] = useState({ nome: '', whatsapp: '' });
+  const [erros, setErros] = useState({});
+  const [enviada, setEnviada] = useState(false);
+  const fecharRef = useRef(null);
+
+  const itens = Object.entries(lista).filter(([, q]) => q > 0).map(([id, quantidade]) => ({ ...produto(id), quantidade }));
+  const total = itens.reduce((soma, i) => soma + i.preco * i.quantidade, 0);
+
+  useEffect(() => {
+    if (!aberta) return undefined;
+    fecharRef.current?.focus();
+    const aoTeclar = (e) => {
+      if (e.key === 'Escape') aoFechar();
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [aberta, aoFechar]);
+
+  const enviar = (e) => {
+    e.preventDefault();
+    const encontrados = validarCotacao(form);
+    setErros(encontrados);
+    if (Object.keys(encontrados).length === 0) setEnviada(true);
+  };
+
+  return (
+    <AnimatePresence>
+      {aberta && (
+        <>
+          <motion.div className="co-fundo" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={aoFechar} />
+          <motion.aside className="co-lista" role="dialog" aria-modal="true" aria-label="Sua lista de cotação" initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 300, damping: 34 }}>
+            <div className="co-lista__topo">
+              <h2>Sua lista</h2>
+              <button ref={fecharRef} type="button" onClick={aoFechar} aria-label="Fechar a lista"><X size={22} /></button>
+            </div>
+            {itens.length === 0 ? (
+              <p className="co-lista__vazia">A lista está vazia. Use o planejador ou escolha produtos nos materiais.</p>
+            ) : (
+              <>
+                <ul className="co-lista__itens">
+                  {itens.map((i) => (
+                    <li key={i.id}>
+                      <div><strong>{i.nome}</strong><span>{formatarReais(i.preco * i.quantidade)}</span></div>
+                      <div className="co-contador">
+                        <button type="button" onClick={() => aoAlterar(i.id, -1)} aria-label={`Tirar um: ${i.nome}`}><Minus size={16} /></button>
+                        <span>{i.quantidade}</span>
+                        <button type="button" onClick={() => aoAlterar(i.id, 1)} aria-label={`Colocar mais um: ${i.nome}`}><Plus size={16} /></button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <p className="co-lista__total"><span>Total estimado</span>{formatarReais(total)}</p>
+                {enviada ? (
+                  <p className="co-lista__enviada" role="status">Este é um site de demonstração, então a lista não foi enviada. No site de verdade, a cotação chegaria à loja com seus dados.</p>
+                ) : (
+                  <form onSubmit={enviar} noValidate className="co-lista__form">
+                    <label htmlFor="co-nome">Seu nome ou nome da obra</label>
+                    <input id="co-nome" type="text" autoComplete="name" value={form.nome} aria-invalid={Boolean(erros.nome)} aria-describedby={erros.nome ? 'co-nome-erro' : undefined} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+                    {erros.nome && <p id="co-nome-erro" className="co-erro" role="alert">{erros.nome}</p>}
+                    <label htmlFor="co-whats">WhatsApp</label>
+                    <input id="co-whats" type="tel" inputMode="tel" autoComplete="tel" value={form.whatsapp} aria-invalid={Boolean(erros.whatsapp)} aria-describedby={erros.whatsapp ? 'co-whats-erro' : undefined} onChange={(e) => setForm({ ...form, whatsapp: mascararTelefone(e.target.value) })} />
+                    {erros.whatsapp && <p id="co-whats-erro" className="co-erro" role="alert">{erros.whatsapp}</p>}
+                    <button type="submit" className="co-botao co-botao--inteiro">Pedir cotação</button>
+                  </form>
+                )}
+              </>
+            )}
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const ConstrucaoPage = () => {
+  const reduzido = useReducedMotion();
+  const [lista, setLista] = useState({});
+  const [aberta, setAberta] = useState(false);
+  const fechar = useCallback(() => setAberta(false), []);
+  const totalItens = Object.values(lista).reduce((s, q) => s + q, 0);
+
+  const adicionar = useCallback((itens) => {
+    setLista((atual) => {
+      const nova = { ...atual };
+      itens.forEach(({ id, quantidade }) => { nova[id] = (nova[id] || 0) + quantidade; });
+      return nova;
+    });
+  }, []);
+  const alterar = (id, delta) => setLista((atual) => ({ ...atual, [id]: Math.max(0, (atual[id] || 0) + delta) }));
+
+  return (
+    <div className="constrular-page">
       <Helmet>
         <title>Constrular | Exemplo ARRC Sistemas</title>
-        <meta name="description" content="Exemplo de site premium para loja de materiais de construção, desenvolvido pela ARRC Sistemas." />
+        <meta name="description" content="Exemplo de site para loja de materiais de construção, com uma casa que se constrói na rolagem e planejador de medidas, desenvolvido pela ARRC Sistemas." />
       </Helmet>
 
-      <Link
-        to="/"
-        className="fixed bottom-5 left-5 z-50 flex items-center gap-2 bg-[#ffb964] text-[#10131a] text-xs uppercase tracking-widest px-4 py-2 rounded-full shadow-lg hover:bg-[#ffddba] transition-colors"
-      >
-        <ArrowLeft size={14} /> ARRC Sistemas
-      </Link>
+      <a href="#co-conteudo" className="co-pular">Pular para o conteúdo</a>
+      <Link to="/" className="co-voltar"><ArrowLeft size={16} /> ARRC Sistemas</Link>
 
-      <header className={`bg-[#10131a] fixed top-0 w-full z-50 border-b border-[#44474e] ${mobileOpen ? '' : 'constrular-header'}`}>
-        <div className="flex justify-between items-center h-16 px-5 md:px-16 w-full mx-auto max-w-7xl">
-          <div className="text-2xl font-bold text-[#ffb964] tracking-tighter">CONSTRULAR</div>
-          <nav className="hidden md:flex items-center gap-8">
-            <button onClick={() => scrollToId('products')} className="text-[#e1e2ec] text-xs uppercase tracking-widest hover:text-[#ffb964] transition-colors" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Products</button>
-            <button onClick={() => scrollToId('differentiators')} className="text-[#e1e2ec] text-xs uppercase tracking-widest hover:text-[#ffb964] transition-colors" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Differentiators</button>
-            <button onClick={() => scrollToId('contact')} className="text-[#e1e2ec] text-xs uppercase tracking-widest hover:text-[#ffb964] transition-colors" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Contact</button>
-          </nav>
-          <button onClick={() => scrollToId('contact')} className="hidden md:inline-flex constrular-btn-primary py-2 px-4 text-[10px]">B2B Portal</button>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-[#ffb964]" aria-label="Abrir menu">
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+      <nav className="co-nav" aria-label="Principal">
+        <span className="co-nav__marca">Constrular</span>
+        <div className="co-nav__links">
+          <a href="#co-planejador" onClick={irPara('co-planejador')}>Planejador</a>
+          <a href="#co-materiais" onClick={irPara('co-materiais')}>Materiais</a>
         </div>
-        {mobileOpen && (
-          <div className="md:hidden border-t border-[#44474e] px-5 py-6 flex flex-col gap-5">
-            <button onClick={() => { scrollToId('products'); setMobileOpen(false); }} className="text-left text-[#e1e2ec] text-xs uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Products</button>
-            <button onClick={() => { scrollToId('differentiators'); setMobileOpen(false); }} className="text-left text-[#e1e2ec] text-xs uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Differentiators</button>
-            <button onClick={() => { scrollToId('contact'); setMobileOpen(false); }} className="constrular-btn-primary py-2 px-4 text-[10px] w-fit">B2B Portal</button>
-          </div>
-        )}
-      </header>
+        <button type="button" className="co-nav__lista" onClick={() => setAberta(true)} aria-label={`Abrir lista de cotação, ${totalItens} itens`}>
+          <ClipboardList size={18} aria-hidden="true" />
+          <motion.span key={totalItens} initial={reduzido ? false : { scale: 1.5 }} animate={{ scale: 1 }}>{totalItens}</motion.span>
+        </button>
+      </nav>
 
-      <main className="flex-grow pt-24 pb-32 flex flex-col gap-24 md:gap-32">
-        {/* Hero */}
-        <section className="px-5 md:px-16 w-full max-w-7xl mx-auto relative mt-12 md:mt-24">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="lg:col-span-7 z-10 flex flex-col gap-8">
-              <div className="inline-flex items-center gap-2 border border-[#44474e] px-3 py-1 w-fit bg-[#0b0e15]">
-                <span className="w-2 h-2 bg-[#ffb964] animate-pulse"></span>
-                <span className="text-xs text-[#c6c6c6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>SYS.STATUS: OPTIMAL</span>
-              </div>
-              <h1 className="text-4xl md:text-6xl font-extrabold uppercase tracking-tighter leading-none text-[#e1e2ec]">
-                ESTRUTURA PARA <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffb964] to-[#c8811d]">O IMPOSSÍVEL</span>
-              </h1>
-              <p className="text-base md:text-lg text-[#c5c6ce] max-w-2xl">
-                Engenharia de suprimentos para projetos de alta complexidade. Precisão germânica, logística implacável e materiais que desafiam os limites estruturais.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                <button onClick={() => scrollToId('products')} className="constrular-btn-primary">
-                  <span>Ver Catálogo</span>
-                  <ArrowRight size={16} />
-                </button>
-                <button onClick={() => scrollToId('contact')} className="constrular-btn-secondary">
-                  <span>Falar com Especialista</span>
-                </button>
-              </div>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5 relative mt-12 lg:mt-0">
-              <div className="relative w-full aspect-[4/5] constrular-technical-border bg-[#191b23] overflow-hidden">
-                <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-[#ffb964] z-20"></div>
-                <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-[#ffb964] z-20"></div>
-                <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-[#ffb964] z-20"></div>
-                <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-[#ffb964] z-20"></div>
-                <div className="absolute top-1/2 left-0 w-full h-[1px] bg-[#ffb964] opacity-20 z-10"></div>
-                <div className="absolute top-0 left-1/2 w-[1px] h-full bg-[#ffb964] opacity-20 z-10"></div>
-                <img alt="Vigas de aço industrial" className="w-full h-full object-cover filter grayscale contrast-125 opacity-80 hover:opacity-100 hover:grayscale-0 transition-all duration-700" src="/images/exemplos/constrular/hero-steel.jpg" />
-                <div className="absolute bottom-4 right-4 bg-[#10131a] border border-[#ffb964] px-2 py-1 z-20">
-                  <span className="text-[10px] text-[#ffb964]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>IMG_REF: BEAM_ST_890</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+      <Obra aoAdicionar={adicionar} reduzido={reduzido} />
 
-        {/* Products */}
-        <section id="products" className="px-5 md:px-16 w-full max-w-7xl mx-auto">
-          <div className="flex flex-col gap-12">
-            <div className="flex flex-col gap-2 border-l-2 border-[#ffb964] pl-4">
-              <h2 className="text-xs text-[#ffb964] uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Equipamentos &amp; Materiais</h2>
-              <h3 className="text-2xl md:text-4xl font-bold text-[#e1e2ec]">CATÁLOGO TÉCNICO</h3>
+      <main id="co-conteudo">
+        <CasaPronta reduzido={reduzido} />
+        <Planejador aoAdicionar={adicionar} />
+        <Materiais aoAdicionar={adicionar} />
+        <section className="co-fortes" aria-label="Por que comprar aqui">
+          {fortes.map((f) => (
+            <div key={f.titulo} className="co-forte">
+              <p className="co-forte__valor">{f.valor}</p>
+              <h3>{f.titulo}</h3>
+              <p>{f.texto}</p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {produtos.map((p) => (
-                <motion.div key={p.specId} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="constrular-card-panel group">
-                  <div className="border-b border-[#44474e] p-2 bg-[#1d1f27] flex justify-between items-center">
-                    <span className="text-[10px] text-[#c6c6c6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{p.specId}</span>
-                    <p.icon size={16} className="text-[#8f9098]" />
-                  </div>
-                  <div className="p-6 flex flex-col gap-6">
-                    <div className="w-full h-64 constrular-technical-border overflow-hidden relative bg-[#0b0e15]">
-                      <img alt={p.nome} className="w-full h-full object-cover filter grayscale contrast-125 group-hover:scale-105 transition-transform duration-500" src={p.img} />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#10131a] to-transparent opacity-60"></div>
-                    </div>
-                    <div>
-                      <h4 className="text-xl uppercase mb-2 text-[#e1e2ec] group-hover:text-[#ffb964] transition-colors">{p.nome}</h4>
-                      <div className="grid grid-cols-2 gap-4 border-t border-[#44474e] pt-4 mt-4">
-                        {p.specs.map((s) => (
-                          <div key={s.label} className="flex flex-col">
-                            <span className="text-[10px] text-[#c6c6c6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{s.label}</span>
-                            <span className="text-sm text-[#e1e2ec]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{s.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-end mt-4">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-[#c6c6c6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{p.precoLabel}</span>
-                        <span className="text-2xl font-bold text-[#ffb964]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{p.preco}</span>
-                      </div>
-                      <button className="constrular-btn-secondary py-2 px-4 text-[10px]">Adicionar</button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Differentiators */}
-        <section id="differentiators" className="w-full bg-[#011230] border-y border-[#44474e] relative overflow-hidden py-24">
-          <div className="px-5 md:px-16 w-full max-w-7xl mx-auto relative z-10">
-            <div className="text-center mb-16">
-              <h2 className="text-xs text-[#ffb964] uppercase tracking-widest mb-4" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Diferenciais Operacionais</h2>
-              <h3 className="text-2xl md:text-4xl font-bold text-[#e1e2ec] uppercase">Protocolo de Serviço</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {diferenciais.map((d) => (
-                <motion.div key={d.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="p-8 border border-[#44474e] bg-[#0b0e15] flex flex-col gap-6 hover:border-[#ffb964] transition-colors duration-300">
-                  <div className="w-16 h-16 border border-[#ffb964] flex items-center justify-center text-[#ffb964]">
-                    <d.icon size={28} strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h4 className="text-xl text-[#e1e2ec] mb-2">{d.title}</h4>
-                    <p className="text-sm text-[#c5c6ce]">{d.desc}</p>
-                  </div>
-                  <div className="mt-auto pt-4 border-t border-[#44474e]">
-                    <span className="text-[10px] text-[#c6c6c6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{d.tag}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Contact CTA */}
-        <section id="contact" className="px-5 md:px-16 w-full max-w-7xl mx-auto py-8">
-          <div className="constrular-card-panel border-[#ffb964] p-8 md:p-16 flex flex-col md:flex-row gap-12 items-center justify-between relative overflow-hidden">
-            <div className="flex flex-col gap-6 max-w-xl z-10 relative">
-              <div className="inline-flex items-center gap-2">
-                <div className="w-8 h-[1px] bg-[#ffb964]"></div>
-                <span className="text-xs text-[#ffb964] uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Central de Engenharia</span>
-              </div>
-              <h2 className="text-2xl md:text-4xl font-bold text-[#e1e2ec] uppercase">Pronto para estruturar sua próxima obra?</h2>
-              <p className="text-sm text-[#c5c6ce]">Nossa equipe de especialistas técnicos está a postos para analisar seu projeto e fornecer uma cotação detalhada em até 2 horas.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                <div className="border border-[#44474e] p-4 bg-[#0b0e15] flex items-center gap-4">
-                  <Phone className="text-[#ffb964]" size={20} />
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-[#c6c6c6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>LINHA DIRETA B2B</span>
-                    <span className="text-[#e1e2ec] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>0800 555 0199</span>
-                  </div>
-                </div>
-                <div className="border border-[#44474e] p-4 bg-[#0b0e15] flex items-center gap-4">
-                  <Mail className="text-[#ffb964]" size={20} />
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-[#c6c6c6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>ENVIO DE PROJETOS</span>
-                    <span className="text-[#e1e2ec] font-bold text-xs truncate" style={{ fontFamily: "'JetBrains Mono', monospace" }}>projetos@constrular.ind.br</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="z-10 w-full md:w-auto">
-              <a href="tel:08005550199" className="constrular-btn-primary w-full md:w-auto justify-center text-lg py-6 px-12">
-                SOLICITAR COTAÇÃO
-                <ArrowRight size={20} />
-              </a>
-            </div>
-          </div>
+          ))}
         </section>
       </main>
 
-      <footer className="bg-[#0b0e15] w-full border-t border-[#44474e]">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-5 md:px-16 py-12 w-full max-w-7xl mx-auto">
-          <div className="flex flex-col gap-4">
-            <div className="text-2xl font-black text-[#e1e2ec]">CONSTRULAR</div>
-            <p className="text-[10px] text-[#c6c6c6] mt-2 max-w-xs uppercase" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              © 2024 CONSTRULAR INDUSTRIAL. TODOS OS DIREITOS RESERVADOS.
-            </p>
-          </div>
-          <div className="flex flex-col gap-4">
-            <h4 className="text-xs text-[#ffb964] uppercase mb-2" style={{ fontFamily: "'JetBrains Mono', monospace" }}>System Status</h4>
-            <div className="inline-flex items-center gap-2 border border-[#44474e] px-3 py-2 w-fit bg-[#1d1f27]">
-              <span className="w-2 h-2 bg-[#ffb964]"></span>
-              <span className="text-[10px] text-[#c6c6c6]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>PORTAL B2B ONLINE</span>
-            </div>
-          </div>
-        </div>
+      <footer className="co-rodape">
+        <p className="co-rotulo">Fale com a loja</p>
+        <a href="tel:08005550199" className="co-rodape__telefone">0800 555 0199</a>
+        <p><a href="mailto:projetos@constrular.ind.br">projetos@constrular.ind.br</a></p>
+        <p>Site de exemplo. A loja, os preços, os prazos e os contatos são fictícios. Fotos: Pexels. <Link to="/">Criado pela ARRC Sistemas</Link>.</p>
       </footer>
+
+      <ListaLateral aberta={aberta} aoFechar={fechar} lista={lista} aoAlterar={alterar} />
     </div>
   );
 };

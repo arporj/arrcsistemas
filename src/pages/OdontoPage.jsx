@@ -1,210 +1,307 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Menu, X } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Check, Pause, Play } from 'lucide-react';
+import Arcada from '@/components/odonto/Arcada';
+import { irPara, mascararTelefone, telefoneValido } from '@/components/exemplos/utilitarios';
 import './OdontoPage.css';
 
-const servicos = [
-  { n: '01', nome: 'Clareamento Dental', desc: 'Técnicas seguras para iluminar seu sorriso de forma natural e confortável.' },
-  { n: '02', nome: 'Ortodontia', desc: 'Alinhamento invisível e aparelhos estéticos para harmonia facial.' },
-  { n: '03', nome: 'Implantes', desc: 'Reabilitação oral de alta precisão devolvendo função e estética.' },
-  { n: '04', nome: 'Limpeza e Prevenção', desc: 'Cuidado contínuo para manter sua saúde bucal impecável a longo prazo.' },
+const TEMPO_RESPIRACAO = 4000;
+const TEMPO_TRATAMENTO = 6000;
+
+const tratamentos = [
+  { id: 'clareamento', nome: 'Clareamento', titulo: 'Um tom de cada vez', texto: 'Avaliamos seus dentes antes de começar e ajustamos o clareamento para evitar sensibilidade.' },
+  { id: 'ortodontia', nome: 'Ortodontia', titulo: 'Alinhar sem pressa', texto: 'Aparelho fixo ou alinhador transparente. Você vê o plano completo e o prazo antes de decidir.' },
+  { id: 'implantes', nome: 'Implantes', titulo: 'Repor o que faltou', texto: 'Planejamento com tomografia para devolver a mastigação e o dente com aparência natural.' },
+  { id: 'limpeza', nome: 'Limpeza', titulo: 'Prevenir é mais simples', texto: 'Remoção de tártaro e orientação de escovação, para evitar tratamentos maiores no futuro.' },
+];
+
+const cuidados = [
+  { titulo: 'Levantou a mão, a gente para.', texto: 'Combinamos um sinal antes de começar. Você mantém o controle durante todo o atendimento.', classe: 'od-bloco--destaque' },
+  { titulo: 'Sem surpresa no valor.', texto: 'O orçamento vem por escrito, etapa por etapa, antes de qualquer procedimento.', classe: '' },
+  { titulo: 'Música ou silêncio?', texto: 'Você escolhe o som da sala e pode pedir uma pausa quando quiser.', classe: 'od-bloco--suave' },
 ];
 
 const depoimentos = [
-  { nome: 'Marina S.', texto: 'O ambiente não parece uma clínica tradicional. É calmo, cheiroso e o atendimento é impecável. Nunca me senti tão relaxada em um dentista.', img: '/images/exemplos/odonto/depoimento-marina.jpg' },
-  { nome: 'Carlos M.', texto: 'Profissionais que realmente escutam. O planejamento do meu tratamento foi transparente e o resultado do clareamento superou minhas expectativas.', img: '/images/exemplos/odonto/depoimento-carlos.jpg' },
-  { nome: 'Juliana R.', texto: 'Sofisticação e cuidado em cada detalhe. Desde a recepção até a cadeira do dentista, é uma experiência de bem-estar focada na saúde.', img: '/images/exemplos/odonto/depoimento-juliana.jpg' },
+  { nome: 'Marina S.', texto: 'O ambiente não parece uma clínica tradicional. Nunca me senti tão tranquila em um dentista.' },
+  { nome: 'Carlos M.', texto: 'Profissionais que realmente escutam. Explicaram cada etapa do plano antes de começar.' },
+  { nome: 'Juliana R.', texto: 'Da recepção até a cadeira, senti cuidado em cada detalhe. Perdi o medo de voltar.' },
 ];
 
-const scrollToId = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+const periodos = ['Manhã', 'Tarde', 'Noite'];
+const passosAgenda = ['O que você procura?', 'Qual período é melhor?', 'Como falamos com você?'];
 
-const OdontoPage = () => {
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ nome: '', whatsapp: '', servico: '', mensagem: '' });
-  const [mobileOpen, setMobileOpen] = useState(false);
+const Respiracao = ({ reduzido }) => {
+  const [inspirando, setInspirando] = useState(true);
+  const [ativa, setAtiva] = useState(!reduzido);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
+  useEffect(() => {
+    if (!ativa) return undefined;
+    const intervalo = setInterval(() => setInspirando((v) => !v), TEMPO_RESPIRACAO);
+    return () => clearInterval(intervalo);
+  }, [ativa]);
 
   return (
-    <div className="odonto-page min-h-screen antialiased selection:bg-[#004d5b] selection:text-white">
+    <div className="od-respiracao">
+      <div className={`od-respiracao__circulos${ativa ? '' : ' od-respiracao__circulos--parado'}`} aria-hidden="true">
+        <i /><i /><i />
+      </div>
+      <p className="od-respiracao__guia" aria-hidden="true">{ativa ? (inspirando ? 'Inspire' : 'Solte o ar') : 'Pausado'}</p>
+      <button type="button" className="od-respiracao__botao" onClick={() => setAtiva(!ativa)} aria-label={ativa ? 'Pausar a respiração guiada' : 'Retomar a respiração guiada'}>
+        {ativa ? <Pause size={18} /> : <Play size={18} />}
+      </button>
+    </div>
+  );
+};
+
+const FotoClinica = ({ reduzido }) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  const raio = useTransform(scrollYProgress, [0, 1], ['50%', '3%']);
+  const escala = useTransform(scrollYProgress, [0, 1], [0.62, 1]);
+
+  return (
+    <section ref={ref} className="od-clinica">
+      <motion.figure style={reduzido ? undefined : { borderRadius: raio, scale: escala }}>
+        <img src="/images/exemplos/odonto/consultorio.jpg" alt="Consultório claro, com cadeira odontológica e janela ampla" loading="lazy" width="1600" height="1068" />
+      </motion.figure>
+    </section>
+  );
+};
+
+const Tratamentos = ({ reduzido }) => {
+  const [atual, setAtual] = useState(tratamentos[0].id);
+  const [automatico, setAutomatico] = useState(!reduzido);
+  const ref = useRef(null);
+  const [visivel, setVisivel] = useState(false);
+
+  useEffect(() => {
+    const observador = new IntersectionObserver(([e]) => setVisivel(e.isIntersecting), { threshold: 0.4 });
+    observador.observe(ref.current);
+    return () => observador.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!automatico || !visivel) return undefined;
+    const intervalo = setInterval(() => {
+      setAtual((id) => tratamentos[(tratamentos.findIndex((t) => t.id === id) + 1) % tratamentos.length].id);
+    }, TEMPO_TRATAMENTO);
+    return () => clearInterval(intervalo);
+  }, [automatico, visivel]);
+
+  const dados = tratamentos.find((t) => t.id === atual);
+
+  return (
+    <section id="od-tratamentos" ref={ref} className="od-tratamentos">
+      <div className="od-tratamentos__texto">
+        <p className="od-rotulo">Tratamentos</p>
+        <div className="od-pilulas" role="group" aria-label="Escolha um tratamento">
+          {tratamentos.map((t) => (
+            <button
+              type="button"
+              key={t.id}
+              aria-pressed={atual === t.id}
+              className={atual === t.id ? 'od-pilula od-pilula--ativa' : 'od-pilula'}
+              onClick={() => { setAtual(t.id); setAutomatico(false); }}
+            >
+              {t.nome}
+            </button>
+          ))}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={dados.id}
+            initial={reduzido ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduzido ? undefined : { opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            aria-live="polite"
+          >
+            <h2>{dados.titulo}</h2>
+            <p>{dados.texto}</p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+      <div className="od-tratamentos__arte">
+        <Arcada key={dados.id} tratamento={dados.id} reduzido={reduzido} />
+      </div>
+    </section>
+  );
+};
+
+const Agenda = ({ reduzido }) => {
+  const [passo, setPasso] = useState(0);
+  const [dados, setDados] = useState({ tratamento: '', periodo: '', nome: '', whatsapp: '' });
+  const [erros, setErros] = useState({});
+  const [pronto, setPronto] = useState(false);
+  const opcoesTratamento = [...tratamentos.map((t) => t.nome), 'Ainda não sei'];
+
+  const escolher = (campo, valor) => {
+    setDados({ ...dados, [campo]: valor });
+    setPasso(passo + 1);
+  };
+
+  const enviar = (e) => {
+    e.preventDefault();
+    const encontrados = {};
+    if (dados.nome.trim().length < 2) encontrados.nome = 'Escreva como podemos chamar você.';
+    if (!telefoneValido(dados.whatsapp)) encontrados.whatsapp = 'Confira o número. Exemplo: (22) 99999-9999.';
+    setErros(encontrados);
+    if (Object.keys(encontrados).length === 0) setPronto(true);
+  };
+
+  const recomecar = () => {
+    setDados({ tratamento: '', periodo: '', nome: '', whatsapp: '' });
+    setErros({});
+    setPasso(0);
+    setPronto(false);
+  };
+
+  const animacao = reduzido ? {} : { initial: { opacity: 0, x: 24 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -24 }, transition: { duration: 0.28 } };
+
+  return (
+    <section id="od-agenda" className="od-agenda">
+      <div className="od-agenda__caixa">
+        {pronto ? (
+          <div role="status" className="od-agenda__pronto">
+            <span className="od-agenda__ok"><Check size={28} aria-hidden="true" /></span>
+            <h2>Tudo certo, {dados.nome.trim().split(' ')[0]}.</h2>
+            <p>Você escolheu {dados.tratamento.toLowerCase()}, no período da {dados.periodo.toLowerCase()}. Este é um site de demonstração, então nada foi enviado nem guardado.</p>
+            <button type="button" className="od-link" onClick={recomecar}>Começar de novo</button>
+          </div>
+        ) : (
+          <>
+            <div className="od-agenda__topo">
+              <p>Passo {passo + 1} de {passosAgenda.length}</p>
+              {passo > 0 && <button type="button" className="od-link" onClick={() => setPasso(passo - 1)}>Voltar</button>}
+            </div>
+            <div className="od-agenda__barra" aria-hidden="true"><motion.i animate={{ scaleX: (passo + 1) / passosAgenda.length }} initial={false} /></div>
+            <AnimatePresence mode="wait">
+              <motion.div key={passo} {...animacao}>
+                <h2 aria-live="polite">{passosAgenda[passo]}</h2>
+                {passo === 0 && (
+                  <div className="od-pilulas">
+                    {opcoesTratamento.map((o) => <button type="button" key={o} className="od-pilula od-pilula--grande" onClick={() => escolher('tratamento', o)}>{o}</button>)}
+                  </div>
+                )}
+                {passo === 1 && (
+                  <div className="od-pilulas">
+                    {periodos.map((o) => <button type="button" key={o} className="od-pilula od-pilula--grande" onClick={() => escolher('periodo', o)}>{o}</button>)}
+                  </div>
+                )}
+                {passo === 2 && (
+                  <form onSubmit={enviar} noValidate>
+                    <label htmlFor="od-nome">Como podemos chamar você?</label>
+                    <input id="od-nome" type="text" autoComplete="given-name" value={dados.nome} aria-invalid={Boolean(erros.nome)} aria-describedby={erros.nome ? 'od-nome-erro' : undefined} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
+                    {erros.nome && <p id="od-nome-erro" className="od-erro" role="alert">{erros.nome}</p>}
+                    <label htmlFor="od-whats">WhatsApp</label>
+                    <input id="od-whats" type="tel" inputMode="tel" autoComplete="tel" value={dados.whatsapp} aria-invalid={Boolean(erros.whatsapp)} aria-describedby={erros.whatsapp ? 'od-whats-erro' : undefined} onChange={(e) => setDados({ ...dados, whatsapp: mascararTelefone(e.target.value) })} />
+                    {erros.whatsapp && <p id="od-whats-erro" className="od-erro" role="alert">{erros.whatsapp}</p>}
+                    <p className="od-agenda__nota">Usamos estes dados só para confirmar seu horário.</p>
+                    <button type="submit" className="od-botao">Pedir meu horário <ArrowRight size={18} /></button>
+                  </form>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const OdontoPage = () => {
+  const reduzido = useReducedMotion();
+
+  return (
+    <div className="odonto-page">
       <Helmet>
         <title>Odonto Sorriso Rio | Exemplo ARRC Sistemas</title>
-        <meta name="description" content="Exemplo de site premium para clínica odontológica, desenvolvido pela ARRC Sistemas." />
+        <meta name="description" content="Exemplo de site para clínica odontológica, com respiração guiada e arcada animada por tratamento, desenvolvido pela ARRC Sistemas." />
       </Helmet>
 
-      <Link
-        to="/"
-        className="fixed bottom-5 left-5 z-50 flex items-center gap-2 bg-[#00353f] text-white text-xs uppercase tracking-widest px-4 py-2 rounded-full shadow-lg hover:bg-[#004d5b] transition-colors"
-      >
-        <ArrowLeft size={14} /> ARRC Sistemas
-      </Link>
+      <a href="#od-conteudo" className="od-pular">Pular para o conteúdo</a>
+      <Link to="/" className="od-voltar"><ArrowLeft size={16} /> ARRC Sistemas</Link>
 
-      <nav className="bg-[#f9f9f9]/90 backdrop-blur-md w-full sticky top-0 z-40 border-b border-[#bfc8cb]/40">
-        <div className="flex justify-between items-center w-full px-5 md:px-20 max-w-[1440px] mx-auto h-20 md:h-24">
-          <span className="text-xl md:text-2xl text-[#00353f] tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Odonto Sorriso Rio</span>
-          <div className="hidden md:flex items-center gap-8">
-            <button onClick={() => scrollToId('services')} className="text-[#40484b] hover:text-[#00353f] transition-colors text-sm">Serviços</button>
-            <button onClick={() => scrollToId('testimonials')} className="text-[#40484b] hover:text-[#00353f] transition-colors text-sm">Depoimentos</button>
-          </div>
-          <button onClick={() => scrollToId('booking')} className="hidden md:inline-flex items-center justify-center bg-[#004d5b] text-white text-sm px-6 py-3 rounded hover:opacity-90 transition-opacity">
-            Agendar Consulta
-          </button>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-[#00353f]" aria-label="Abrir menu">
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+      <nav className="od-nav" aria-label="Principal">
+        <span className="od-nav__marca">Sorriso Rio</span>
+        <div className="od-nav__links">
+          <a href="#od-tratamentos" onClick={irPara('od-tratamentos')}>Tratamentos</a>
+          <a href="#od-agenda" onClick={irPara('od-agenda')} className="od-nav__agendar">Agendar</a>
         </div>
-        {mobileOpen && (
-          <div className="md:hidden border-t border-[#bfc8cb]/40 px-5 py-6 flex flex-col gap-5">
-            <button onClick={() => { scrollToId('services'); setMobileOpen(false); }} className="text-left text-[#40484b] text-sm">Serviços</button>
-            <button onClick={() => { scrollToId('testimonials'); setMobileOpen(false); }} className="text-left text-[#40484b] text-sm">Depoimentos</button>
-            <button onClick={() => { scrollToId('booking'); setMobileOpen(false); }} className="inline-flex items-center justify-center bg-[#004d5b] text-white text-sm px-6 py-3 rounded w-fit">Agendar Consulta</button>
-          </div>
-        )}
       </nav>
 
-      <main>
-        {/* Hero */}
-        <section className="w-full max-w-[1440px] mx-auto px-5 md:px-20 py-20 md:py-32">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="md:col-start-2 md:col-span-5 flex flex-col items-start z-10 order-2 md:order-1 pt-12 md:pt-0">
-              <h1 className="text-4xl md:text-6xl leading-tight text-[#00353f] mb-8" style={{ fontFamily: "'Playfair Display', serif" }}>
-                Sua saúde bucal em mãos de quem cuida com carinho
-              </h1>
-              <p className="text-lg text-[#40484b] mb-12 max-w-md">
-                Combinamos excelência clínica com um atendimento humano e acolhedor. Transforme seu sorriso em um ambiente pensado para o seu conforto.
-              </p>
-              <button onClick={() => scrollToId('booking')} className="inline-flex items-center justify-center bg-[#004d5b] text-white text-sm px-8 py-4 rounded hover:opacity-90 transition-all duration-300">
-                Agendar Minha Consulta
-              </button>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.15 }} className="md:col-start-7 md:col-span-6 h-[400px] md:h-[700px] w-full relative order-1 md:order-2">
-              <img alt="Paciente sorrindo" className="w-full h-full object-cover rounded-lg shadow-sm" src="/images/exemplos/odonto/hero-paciente.jpg" />
-            </motion.div>
+      <header className="od-abertura">
+        <div className="od-aurora" aria-hidden="true"><i /><i /><i /></div>
+        <Respiracao reduzido={reduzido} />
+        <motion.div
+          className="od-abertura__texto"
+          initial={reduzido ? false : { opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <h1>Respira. <em>A gente cuida do resto.</em></h1>
+          <p>Uma clínica em Rio das Ostras para quem tem receio de dentista: atendimento sem pressa, explicações claras e um ambiente pensado para o seu conforto.</p>
+          <a href="#od-agenda" onClick={irPara('od-agenda')} className="od-botao">Agendar minha consulta <ArrowRight size={18} /></a>
+        </motion.div>
+      </header>
+
+      <main id="od-conteudo">
+        <FotoClinica reduzido={reduzido} />
+
+        <section className="od-cuidados" aria-label="Como cuidamos de você">
+          {cuidados.map((c, i) => (
+            <motion.article
+              key={c.titulo}
+              className={`od-bloco ${c.classe}`}
+              initial={reduzido ? false : { opacity: 0, y: 40, scale: 0.96 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: '-10% 0px' }}
+              transition={{ type: 'spring', stiffness: 80, damping: 16, delay: i * 0.08 }}
+            >
+              <h2>{c.titulo}</h2>
+              <p>{c.texto}</p>
+            </motion.article>
+          ))}
+          <motion.figure
+            className="od-bloco od-bloco--foto"
+            initial={reduzido ? false : { opacity: 0, scale: 0.96 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: '-10% 0px' }}
+          >
+            <img src="/images/exemplos/odonto/equipamento.jpg" alt="Equipamento odontológico limpo em consultório claro" loading="lazy" width="1600" height="1067" />
+          </motion.figure>
+        </section>
+
+        <Tratamentos reduzido={reduzido} />
+
+        <section className="od-relatos">
+          <p className="od-rotulo">Quem já veio</p>
+          <div className="od-relatos__lista">
+            {depoimentos.map((d, i) => (
+              <motion.blockquote
+                key={d.nome}
+                initial={reduzido ? false : { opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-10% 0px' }}
+                transition={{ type: 'spring', stiffness: 70, damping: 16, delay: i * 0.1 }}
+              >
+                <p>{d.texto}</p>
+                <footer><span aria-hidden="true">{d.nome[0]}</span><cite>{d.nome}</cite></footer>
+              </motion.blockquote>
+            ))}
           </div>
         </section>
 
-        {/* Credentials strip */}
-        <section className="w-full bg-[#e9e1d8] py-8 border-y border-[#bfc8cb]/30">
-          <div className="max-w-[1440px] mx-auto px-5 md:px-20 flex flex-wrap justify-center md:justify-between items-center gap-8">
-            <span className="text-xs text-[#1e1b16] uppercase tracking-widest opacity-60">Atendimento Premium</span>
-            <div className="hidden md:block w-1 h-1 rounded-full bg-[#bfc8cb]"></div>
-            <span className="text-xs text-[#1e1b16] uppercase tracking-widest opacity-60">Tecnologia Avançada</span>
-            <div className="hidden md:block w-1 h-1 rounded-full bg-[#bfc8cb]"></div>
-            <span className="text-xs text-[#1e1b16] uppercase tracking-widest opacity-60">Ambiente Acolhedor</span>
-          </div>
-        </section>
-
-        {/* Services */}
-        <section id="services" className="w-full max-w-[1440px] mx-auto px-5 md:px-20 py-24 md:py-40">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-            <div className="md:col-start-3 md:col-span-3 mb-12 md:mb-0">
-              <h2 className="text-4xl text-[#00353f] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Menu de Cuidados</h2>
-              <p className="text-[#40484b]">Tratamentos personalizados com foco no seu bem-estar e resultados duradouros.</p>
-            </div>
-            <div className="md:col-start-7 md:col-span-5 flex flex-col">
-              {servicos.map((s, i) => (
-                <div key={s.n} className={`odonto-service-row group border-t ${i === servicos.length - 1 ? 'border-b' : ''} border-[#e9e1d8] py-8 flex flex-col md:flex-row md:items-baseline gap-4`}>
-                  <span className="text-xs text-[#70787b] w-8">{s.n}</span>
-                  <div className="flex-1 relative">
-                    <h3 className="text-2xl text-[#1a1c1c] group-hover:text-[#00353f] transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>{s.nome}</h3>
-                    <p className="odonto-service-desc text-sm text-[#40484b] mt-2 max-w-xs md:absolute md:bg-white md:p-4 md:odonto-ambient-shadow md:z-10">{s.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Testimonials */}
-        <section id="testimonials" className="w-full bg-[#f3f3f3] py-24 md:py-40">
-          <div className="max-w-[1440px] mx-auto px-5 md:px-20">
-            <h2 className="text-4xl text-[#00353f] text-center mb-16 md:mb-24" style={{ fontFamily: "'Playfair Display', serif" }}>Relatos Reais</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {depoimentos.map((d) => (
-                <motion.div key={d.nome} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="flex flex-col items-center text-center p-8 bg-white rounded-lg odonto-ambient-shadow">
-                  <p className="text-4xl text-[#00353f] opacity-20 mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>"</p>
-                  <p className="text-sm text-[#40484b] mb-8 flex-grow">{d.texto}</p>
-                  <div className="flex items-center gap-4 mt-auto">
-                    <img alt={d.nome} className="w-12 h-12 rounded-full object-cover grayscale" src={d.img} />
-                    <span className="text-xs text-[#1a1c1c] uppercase tracking-wider">{d.nome}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Booking */}
-        <section id="booking" className="w-full py-24 md:py-40 relative">
-          <div className="absolute inset-0 bg-[#e9e1d8]/30 -z-10 h-1/2 top-0"></div>
-          <div className="max-w-[1440px] mx-auto px-5 md:px-20 flex justify-center">
-            <div className="w-full max-w-2xl bg-white odonto-ambient-shadow rounded-xl p-8 md:p-16 relative">
-              {submitted ? (
-                <div className="text-center py-8">
-                  <h2 className="text-3xl text-[#00353f] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Obrigado!</h2>
-                  <p className="text-[#40484b]">Seu pedido de agendamento foi enviado. Nossa equipe entrará em contato para organizar sua visita.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="text-center mb-12">
-                    <h2 className="text-4xl text-[#00353f] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Dê o Primeiro Passo</h2>
-                    <p className="text-[#40484b]">Preencha os dados abaixo e nossa equipe entrará em contato para organizar sua visita.</p>
-                  </div>
-                  <form onSubmit={handleSubmit} className="space-y-8">
-                    <div>
-                      <label className="text-xs text-[#70787b] block mb-2" htmlFor="nome">NOME COMPLETO</label>
-                      <input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full bg-transparent border-0 border-b border-[#e9e1d8] focus:ring-0 focus:border-[#004d5b] px-0 py-2 text-[#1a1c1c] transition-colors" id="nome" placeholder="Seu nome" type="text" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-[#70787b] block mb-2" htmlFor="whatsapp">WHATSAPP</label>
-                      <input required value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className="w-full bg-transparent border-0 border-b border-[#e9e1d8] focus:ring-0 focus:border-[#004d5b] px-0 py-2 text-[#1a1c1c] transition-colors" id="whatsapp" placeholder="(22) 99999-9999" type="tel" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-[#70787b] block mb-2" htmlFor="servico">SERVIÇO DE INTERESSE</label>
-                      <select value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })} className="w-full bg-transparent border-0 border-b border-[#e9e1d8] focus:ring-0 focus:border-[#004d5b] px-0 py-2 text-[#1a1c1c] transition-colors appearance-none" id="servico">
-                        <option disabled value="">Selecione uma opção</option>
-                        <option value="clareamento">Clareamento Dental</option>
-                        <option value="ortodontia">Ortodontia</option>
-                        <option value="implantes">Implantes</option>
-                        <option value="limpeza">Limpeza e Prevenção</option>
-                        <option value="outro">Outro / Não tenho certeza</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-[#70787b] block mb-2" htmlFor="mensagem">MENSAGEM (OPCIONAL)</label>
-                      <textarea value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} className="w-full bg-transparent border-0 border-b border-[#e9e1d8] focus:ring-0 focus:border-[#004d5b] px-0 py-2 text-[#1a1c1c] transition-colors resize-none" id="mensagem" placeholder="Como podemos ajudar?" rows={3}></textarea>
-                    </div>
-                    <button type="submit" className="w-full bg-[#004d5b] text-white py-4 rounded hover:opacity-90 transition-all duration-300 mt-8">
-                      Solicitar Agendamento
-                    </button>
-                  </form>
-                </>
-              )}
-            </div>
-          </div>
-        </section>
+        <Agenda reduzido={reduzido} />
       </main>
 
-      <footer className="bg-[#e9e1d8] w-full py-16 md:py-24">
-        <div className="flex flex-col md:flex-row justify-between items-start px-5 md:px-20 max-w-[1440px] mx-auto gap-8">
-          <div>
-            <span className="text-2xl text-[#00353f] block mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Odonto Sorriso Rio</span>
-            <p className="text-sm text-[#68645d] max-w-xs mb-2">Rua das Palmeiras, 210 - Rio das Ostras, RJ</p>
-            <p className="text-sm text-[#68645d] max-w-xs mb-4">(22) 99999-9999</p>
-            <p className="text-sm text-[#68645d] max-w-xs">© 2024 Odonto Sorriso Rio. Excelência em Estética Dental.</p>
-          </div>
-          <div className="flex flex-col gap-4">
-            <span className="text-sm text-[#4a4640] hover:opacity-80 transition-opacity">Contato</span>
-            <span className="text-sm text-[#4a4640] hover:opacity-80 transition-opacity">Política de Privacidade</span>
-            <span className="text-sm text-[#4a4640] hover:opacity-80 transition-opacity">Termos de Serviço</span>
-          </div>
-        </div>
+      <footer className="od-rodape">
+        <p className="od-rodape__marca">Sorriso Rio</p>
+        <p>Rua das Palmeiras, 210, Rio das Ostras, RJ · <a href="tel:+5522999999999">(22) 99999-9999</a></p>
+        <p>Site de exemplo. A clínica, os relatos e os contatos são fictícios. Em um site real, aqui entram o nome e o CRO do responsável técnico. Fotos: Pexels. <Link to="/">Criado pela ARRC Sistemas</Link>.</p>
       </footer>
     </div>
   );

@@ -2,21 +2,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
+import BarraVersoes from '@/components/exemplos/BarraVersoes';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, Pause, Play } from 'lucide-react';
+import { ArrowRight, Check, Pause, Play } from 'lucide-react';
 import Arcada from '@/components/odonto/Arcada';
-import { irPara, mascararTelefone, telefoneValido } from '@/components/exemplos/utilitarios';
+import { irPara, mascararTelefone } from '@/components/exemplos/utilitarios';
+import { PERIODOS, contato, depoimentos, tratamentos } from '@/conteudo/odonto';
+import { validarContatoAgendamento } from '@/dominio/odonto';
 import './OdontoPage.css';
 
 const TEMPO_RESPIRACAO = 4000;
 const TEMPO_TRATAMENTO = 6000;
-
-const tratamentos = [
-  { id: 'clareamento', nome: 'Clareamento', titulo: 'Um tom de cada vez', texto: 'Avaliamos seus dentes antes de começar e ajustamos o clareamento para evitar sensibilidade.' },
-  { id: 'ortodontia', nome: 'Ortodontia', titulo: 'Alinhar sem pressa', texto: 'Aparelho fixo ou alinhador transparente. Você vê o plano completo e o prazo antes de decidir.' },
-  { id: 'implantes', nome: 'Implantes', titulo: 'Repor o que faltou', texto: 'Planejamento com tomografia para devolver a mastigação e o dente com aparência natural.' },
-  { id: 'limpeza', nome: 'Limpeza', titulo: 'Prevenir é mais simples', texto: 'Remoção de tártaro e orientação de escovação, para evitar tratamentos maiores no futuro.' },
-];
 
 const cuidados = [
   { titulo: 'Levantou a mão, a gente para.', texto: 'Combinamos um sinal antes de começar. Você mantém o controle durante todo o atendimento.', classe: 'od-bloco--destaque' },
@@ -24,13 +20,6 @@ const cuidados = [
   { titulo: 'Música ou silêncio?', texto: 'Você escolhe o som da sala e pode pedir uma pausa quando quiser.', classe: 'od-bloco--suave' },
 ];
 
-const depoimentos = [
-  { nome: 'Marina S.', texto: 'O ambiente não parece uma clínica tradicional. Nunca me senti tão tranquila em um dentista.' },
-  { nome: 'Carlos M.', texto: 'Profissionais que realmente escutam. Explicaram cada etapa do plano antes de começar.' },
-  { nome: 'Juliana R.', texto: 'Da recepção até a cadeira, senti cuidado em cada detalhe. Perdi o medo de voltar.' },
-];
-
-const periodos = ['Manhã', 'Tarde', 'Noite'];
 const passosAgenda = ['O que você procura?', 'Qual período é melhor?', 'Como falamos com você?'];
 
 const Respiracao = ({ reduzido }) => {
@@ -145,9 +134,7 @@ const Agenda = ({ reduzido }) => {
 
   const enviar = (e) => {
     e.preventDefault();
-    const encontrados = {};
-    if (dados.nome.trim().length < 2) encontrados.nome = 'Escreva como podemos chamar você.';
-    if (!telefoneValido(dados.whatsapp)) encontrados.whatsapp = 'Confira o número. Exemplo: (22) 99999-9999.';
+    const encontrados = validarContatoAgendamento(dados);
     setErros(encontrados);
     if (Object.keys(encontrados).length === 0) setPronto(true);
   };
@@ -188,7 +175,7 @@ const Agenda = ({ reduzido }) => {
                 )}
                 {passo === 1 && (
                   <div className="od-pilulas">
-                    {periodos.map((o) => <button type="button" key={o} className="od-pilula od-pilula--grande" onClick={() => escolher('periodo', o)}>{o}</button>)}
+                    {PERIODOS.map((o) => <button type="button" key={o} className="od-pilula od-pilula--grande" onClick={() => escolher('periodo', o)}>{o}</button>)}
                   </div>
                 )}
                 {passo === 2 && (
@@ -223,7 +210,7 @@ const OdontoPage = () => {
       </Helmet>
 
       <a href="#od-conteudo" className="od-pular">Pular para o conteúdo</a>
-      <Link to="/" className="od-voltar"><ArrowLeft size={16} /> ARRC Sistemas</Link>
+      <BarraVersoes slug="odonto" nivel="premium" />
 
       <nav className="od-nav" aria-label="Principal">
         <span className="od-nav__marca">Sorriso Rio</span>
@@ -300,7 +287,7 @@ const OdontoPage = () => {
 
       <footer className="od-rodape">
         <p className="od-rodape__marca">Sorriso Rio</p>
-        <p>Rua das Palmeiras, 210, Rio das Ostras, RJ · <a href="tel:+5522999999999">(22) 99999-9999</a></p>
+        <p>{contato.endereco} · <a href={contato.telefoneLink}>{contato.telefone}</a></p>
         <p>Site de exemplo. A clínica, os relatos e os contatos são fictícios. Em um site real, aqui entram o nome e o CRO do responsável técnico. Fotos: Pexels. <Link to="/">Criado pela ARRC Sistemas</Link>.</p>
       </footer>
     </div>

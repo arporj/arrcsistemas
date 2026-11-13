@@ -1,0 +1,54 @@
+.fee {
+  --fee-fundo: #f8f4ec;
+  --fee-branco: #fffdf9;
+  --fee-tinta: #1e2c25;
+  --fee-apagado: #52625a;
+  --fee-eucalipto: #35523f;
+  --fee-eucalipto-escuro: #263d2e;
+  --fee-linha: rgba(30, 44, 37, 0.18);
+  --fee-fonte-titulo: 'Cormorant Garamond', serif;
+  --fee-fonte: 'Figtree', sans-serif;
+  --fee-largura: 60rem;
+  --fee-margem: clamp(1.25rem, 5vw, 3rem);
+
+  min-height: 100dvh; background: var(--fee-fundo); color: var(--fee-tinta);
+  font-family: var(--fee-fonte); font-size: 1.0625rem; line-height: 1.65;
+}
+.fee a { color: inherit; text-underline-offset: 4px; }
+.fee :focus-visible { outline: 2px solid var(--fee-eucalipto); outline-offset: 3px; }
+.fee h1, .fee h2 { font-family: var(--fee-fonte-titulo); font-weight: 500; line-height: 1.05; text-wrap: balance; }
+.fee-pular { position: absolute; left: -999px; top: 0; z-index: 90; padding: 0.75rem 1rem; background: var(--fee-tinta); color: var(--fee-branco) !important; }
+.fee-pular:focus { left: 1rem; top: 1rem; }
+
+.fee-topo { max-width: var(--fee-largura); margin: 0 auto; padding: 2rem var(--fee-margem) 0; text-align: center; }
+.fee-marca { font-family: var(--fee-fonte-titulo); font-size: 2.25rem; font-style: italic; line-height: 1; }
+.fee-topo__sub { font-size: 0.8125rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fee-apagado); margin-top: 0.375rem; }
+
+.fee-abertura { max-width: var(--fee-largura); margin: 0 auto; padding: clamp(2.5rem, 6vw, 4rem) var(--fee-margem); text-align: center; }
+.fee-abertura h1 { font-size: clamp(2.5rem, 6.5vw, 4.75rem); max-width: 48rem; margin: 0 auto 2.5rem; }
+.fee-abertura img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 0.25rem; }
+.fee-abertura__rodape { display: grid; justify-items: center; gap: 1.25rem; margin-top: 2rem; }
+.fee-abertura__rodape > p { max-width: 34rem; color: var(--fee-apagado); }
+
+.fee-botao {
+  display: inline-flex; align-items: center; min-height: 3rem; padding: 0 1.75rem; border: 0; border-radius: 999px;
+  font: inherit; font-weight: 500; color: var(--fee-fundo); background: var(--fee-eucalipto); cursor: pointer; transition: background-color 0.2s;
+}
+.fee-botao:hover { background: var(--fee-eucalipto-escuro); }
+.fee-aviso { max-width: 30rem; padding: 0.75rem 1rem; border-radius: 0.5rem; background: var(--fee-branco); font-size: 0.9375rem; box-shadow: inset 0 0 0 1px var(--fee-linha); }
+
+.fee-eventos, .fee-incluso, .fee-contato { max-width: var(--fee-largura); margin: 0 auto; padding: clamp(2.5rem, 6vw, 4rem) var(--fee-margem); border-top: 1px solid var(--fee-linha); }
+.fee h2 { font-size: clamp(2rem, 4.5vw, 3rem); margin-bottom: 1.75rem; }
+.fee-eventos dl { display: grid; gap: 1.75rem 3rem; margin: 0; }
+@media (min-width: 720px) { .fee-eventos dl { grid-template-columns: 1fr 1fr; } }
+.fee-eventos dt { font-family: var(--fee-fonte-titulo); font-size: 1.625rem; font-style: italic; }
+.fee-eventos dd { margin: 0.25rem 0 0; color: var(--fee-apagado); }
+
+.fee-incluso ul { columns: 2 16rem; column-gap: 3rem; list-style: none; margin: 0; padding: 0; }
+.fee-incluso li { break-inside: avoid; padding: 0.625rem 0 0.625rem 1.5rem; position: relative; }
+.fee-incluso li::before { content: ''; position: absolute; left: 0; top: 1.15rem; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--fee-eucalipto); }
+
+.fee-contato { text-align: center; }
+.fee-contato p { margin-top: 0.375rem; }
+
+.fee-rodape { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 1.5rem; max-width: var(--fee-largura); margin: 0 auto; padding: 1.5rem var(--fee-margem) 5.5rem; border-top: 1px solid var(--fee-linha); font-size: 0.875rem; color: var(--fee-apagado); }

@@ -1,0 +1,73 @@
+.ofe {
+  --ofe-fundo: #f3f0ea;
+  --ofe-papel: #fbfaf7;
+  --ofe-tinta: #191714;
+  --ofe-apagado: #5e5850;
+  --ofe-destaque: #c2410c;
+  --ofe-destaque-forte: #9a330a;
+  --ofe-linha: rgba(25, 23, 20, 0.16);
+  --ofe-fonte-titulo: 'Archivo', sans-serif;
+  --ofe-fonte: 'Hanken Grotesk', sans-serif;
+  --ofe-margem: clamp(1.25rem, 5vw, 4.5rem);
+
+  min-height: 100dvh; background: var(--ofe-fundo); color: var(--ofe-tinta);
+  font-family: var(--ofe-fonte); font-size: 1.0625rem; line-height: 1.6;
+}
+.ofe a { color: inherit; }
+.ofe :focus-visible { outline: 2px solid var(--ofe-destaque); outline-offset: 3px; }
+.ofe h1, .ofe h2, .ofe h3 { font-family: var(--ofe-fonte-titulo); line-height: 1.05; text-wrap: balance; }
+
+.ofe-pular { position: absolute; left: -999px; top: 0; z-index: 90; padding: 0.75rem 1rem; background: var(--ofe-tinta); color: var(--ofe-papel) !important; }
+.ofe-pular:focus { left: 1rem; top: 1rem; }
+
+.ofe-topo {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1.25rem var(--ofe-margem); border-bottom: 1px solid var(--ofe-linha);
+}
+.ofe-marca { font-family: var(--ofe-fonte-titulo); font-weight: 800; font-size: 1.375rem; font-stretch: 85%; text-transform: uppercase; letter-spacing: -0.01em; }
+.ofe-marca small { display: block; font-family: var(--ofe-fonte); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.08em; color: var(--ofe-apagado); text-transform: uppercase; }
+.ofe-topo__fone { display: inline-flex; align-items: center; min-height: 2.75rem; font-weight: 600; text-decoration: none; }
+.ofe-topo__fone:hover { color: var(--ofe-destaque); }
+
+.ofe-abertura {
+  display: grid; gap: clamp(2rem, 5vw, 4rem); align-items: center;
+  padding: clamp(2.5rem, 7vw, 5.5rem) var(--ofe-margem);
+}
+@media (min-width: 900px) { .ofe-abertura { grid-template-columns: 1.1fr 1fr; } }
+.ofe-sobre { font-weight: 600; color: var(--ofe-destaque); margin-bottom: 1rem; }
+.ofe-abertura h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 800; font-stretch: 80%; letter-spacing: -0.02em; margin-bottom: 1.25rem; }
+.ofe-abertura__texto > p:not(.ofe-sobre) { max-width: 34rem; color: var(--ofe-apagado); }
+.ofe-abertura__foto { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 0.375rem; }
+
+.ofe-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; margin-top: 2rem; }
+.ofe-botao {
+  display: inline-flex; align-items: center; min-height: 3rem; padding: 0 1.5rem; border: 0; border-radius: 0.375rem;
+  font: inherit; font-weight: 600; color: #fff; background: var(--ofe-destaque); cursor: pointer; transition: background-color 0.2s;
+}
+.ofe-botao:hover { background: var(--ofe-destaque-forte); }
+.ofe-link { display: inline-flex; align-items: center; min-height: 2.75rem; font-weight: 600; text-underline-offset: 4px; }
+.ofe-link:hover { color: var(--ofe-destaque); }
+.ofe-aviso { flex-basis: 100%; max-width: 34rem; padding: 0.75rem 1rem; border-left: 3px solid var(--ofe-destaque); background: var(--ofe-papel); font-size: 0.9375rem; }
+
+.ofe-servicos, .ofe-visita { padding: clamp(2.5rem, 6vw, 4.5rem) var(--ofe-margem); border-top: 1px solid var(--ofe-linha); }
+.ofe-servicos h2, .ofe-visita h2 { font-size: clamp(1.75rem, 3.5vw, 2.5rem); font-weight: 800; font-stretch: 85%; margin-bottom: 2rem; }
+.ofe-servicos ol { list-style: none; padding: 0; margin: 0; }
+.ofe-servicos li {
+  display: grid; grid-template-columns: 3rem 1fr; gap: 0.25rem 1rem; padding: 1.25rem 0; border-bottom: 1px solid var(--ofe-linha);
+}
+@media (min-width: 720px) { .ofe-servicos li { grid-template-columns: 4rem 16rem 1fr; align-items: baseline; } }
+.ofe-servicos__n { font-family: var(--ofe-fonte-titulo); font-weight: 700; color: var(--ofe-destaque); }
+.ofe-servicos h3 { font-size: 1.25rem; font-weight: 700; }
+.ofe-servicos li p { grid-column: 2; color: var(--ofe-apagado); }
+@media (min-width: 720px) { .ofe-servicos li p { grid-column: 3; } }
+
+.ofe-visita__grade { display: grid; gap: 2rem; }
+@media (min-width: 720px) { .ofe-visita__grade { grid-template-columns: repeat(3, 1fr); } }
+.ofe-visita h3 { font-family: var(--ofe-fonte); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ofe-apagado); margin-bottom: 0.5rem; }
+.ofe-visita dl div { display: flex; justify-content: space-between; gap: 1rem; max-width: 18rem; }
+.ofe-visita dd { margin: 0; font-weight: 600; }
+
+.ofe-rodape {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 1.5rem;
+  padding: 1.5rem var(--ofe-margem) 5.5rem; border-top: 1px solid var(--ofe-linha); font-size: 0.875rem; color: var(--ofe-apagado);
+}

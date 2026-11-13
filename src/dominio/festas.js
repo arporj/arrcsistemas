@@ -1,4 +1,5 @@
-// Regras do simulador de montagem da Casa de Festas Encanto (site de exemplo).
+// Regras do simulador de montagem e do pedido de orçamento da Casa de Festas Encanto (site de exemplo).
+import { emailValido } from '@/components/exemplos/utilitarios';
 
 export const CONVIDADOS_MINIMO = 50;
 export const CONVIDADOS_MAXIMO = 400;
@@ -29,3 +30,26 @@ export const calcularMontagem = (convidados, formato) => {
     salao: saloes.find((s) => convidados <= s.capacidade),
   };
 };
+
+const dataLocalIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Valida o pedido de orçamento da versão Profissional.
+ * Entrada: nome, e-mail, tipo, data no formato aaaa-mm-dd e convidados (texto digitado).
+ * Saída: objeto com a mensagem de erro de cada campo inválido (vazio quando está tudo certo).
+ */
+export const validarPedidoOrcamento = ({ nome, email, tipo, data, convidados }, hoje = new Date()) => {
+  const erros = {};
+  const quantidade = Number(convidados);
+  if (nome.trim().length < 2) erros.nome = 'Conte seu nome para sabermos com quem falar.';
+  if (!emailValido(email)) erros.email = 'Confira o e-mail. Exemplo: voce@email.com.';
+  if (!tipo) erros.tipo = 'Escolha o tipo de evento.';
+  if (!data) erros.data = 'Escolha a data da festa.';
+  else if (data < dataLocalIso(hoje)) erros.data = 'Essa data já passou. Escolha uma data a partir de hoje.';
+  if (!Number.isInteger(quantidade) || quantidade < CONVIDADOS_MINIMO || quantidade > CONVIDADOS_MAXIMO) {
+    erros.convidados = `Informe de ${CONVIDADOS_MINIMO} a ${CONVIDADOS_MAXIMO} convidados.`;
+  }
+  return erros;
+};
+
+export const hojeIso = () => dataLocalIso(new Date());

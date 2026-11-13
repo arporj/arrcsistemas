@@ -1,0 +1,58 @@
+.ode {
+  --ode-fundo: #f4faf8;
+  --ode-branco: #ffffff;
+  --ode-tinta: #0d3b42;
+  --ode-apagado: #3f6168;
+  --ode-destaque: #0b6e78;
+  --ode-destaque-forte: #095d66;
+  --ode-menta: #dff3ee;
+  --ode-linha: rgba(13, 59, 66, 0.14);
+  --ode-fonte: 'Figtree', sans-serif;
+  --ode-fonte-serifa: 'Instrument Serif', serif;
+  --ode-largura: 64rem;
+  --ode-margem: clamp(1.25rem, 5vw, 3rem);
+
+  min-height: 100dvh; background: var(--ode-fundo); color: var(--ode-tinta);
+  font-family: var(--ode-fonte); font-size: 1.0625rem; line-height: 1.65;
+}
+.ode a { color: inherit; text-underline-offset: 4px; }
+.ode :focus-visible { outline: 2px solid var(--ode-destaque); outline-offset: 3px; }
+.ode h1, .ode h2, .ode h3 { line-height: 1.1; text-wrap: balance; }
+.ode em { font-family: var(--ode-fonte-serifa); font-style: italic; font-weight: 400; color: var(--ode-destaque); }
+.ode-pular { position: absolute; left: -999px; top: 0; z-index: 90; padding: 0.75rem 1rem; background: var(--ode-tinta); color: #fff !important; }
+.ode-pular:focus { left: 1rem; top: 1rem; }
+
+.ode-topo { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: var(--ode-largura); margin: 0 auto; padding: 1.5rem var(--ode-margem); }
+.ode-marca { font-family: var(--ode-fonte-serifa); font-size: 1.75rem; line-height: 1; }
+.ode-marca small { display: block; font-family: var(--ode-fonte); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ode-apagado); margin-top: 0.25rem; }
+.ode-topo__fone { display: inline-flex; align-items: center; min-height: 2.75rem; font-weight: 600; text-decoration: none; }
+.ode-topo__fone:hover { color: var(--ode-destaque); }
+
+.ode-abertura { max-width: var(--ode-largura); margin: 0 auto; padding: clamp(2rem, 6vw, 4rem) var(--ode-margem); }
+.ode-abertura h1 { max-width: 44rem; font-size: clamp(2.375rem, 6vw, 4.25rem); font-weight: 600; letter-spacing: -0.02em; margin-bottom: 1.25rem; }
+.ode-abertura > p { max-width: 34rem; color: var(--ode-apagado); margin-bottom: 1.75rem; }
+.ode-abertura img { display: block; width: 100%; aspect-ratio: 16 / 8; object-fit: cover; margin-top: clamp(2.5rem, 6vw, 3.5rem); border-radius: 1.5rem; }
+
+.ode-botao {
+  display: inline-flex; align-items: center; min-height: 3.125rem; padding: 0 1.75rem; border: 0; border-radius: 999px;
+  font: inherit; font-weight: 600; color: #fff; background: var(--ode-destaque); cursor: pointer; transition: background-color 0.2s;
+}
+.ode-botao:hover { background: var(--ode-destaque-forte); }
+.ode-aviso { display: block; max-width: 34rem; margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 0.75rem; background: var(--ode-menta); font-size: 0.9375rem; }
+
+.ode-tratamentos, .ode-info { max-width: var(--ode-largura); margin: 0 auto; padding: clamp(2.5rem, 6vw, 4rem) var(--ode-margem); }
+.ode-tratamentos h2 { font-size: clamp(1.875rem, 4vw, 2.75rem); font-weight: 600; margin-bottom: 1.75rem; }
+.ode-tratamentos ul { display: grid; gap: 1rem; list-style: none; margin: 0; padding: 0; }
+@media (min-width: 720px) { .ode-tratamentos ul { grid-template-columns: 1fr 1fr; } }
+.ode-tratamentos li { padding: 1.5rem; border-radius: 1rem; background: var(--ode-branco); box-shadow: inset 0 0 0 1px var(--ode-linha); }
+.ode-tratamentos h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.375rem; }
+.ode-tratamentos li p { color: var(--ode-apagado); font-size: 1rem; }
+
+.ode-info { display: grid; gap: 2rem; border-top: 1px solid var(--ode-linha); }
+@media (min-width: 760px) { .ode-info { grid-template-columns: repeat(3, 1fr); } }
+.ode-info h2 { font-size: 0.875rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ode-apagado); margin-bottom: 0.625rem; }
+.ode-info dl div { display: flex; justify-content: space-between; gap: 1rem; max-width: 17rem; }
+.ode-info dd { margin: 0; font-weight: 600; }
+
+.ode-rodape { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 1.5rem; max-width: var(--ode-largura); margin: 0 auto; padding: 1.5rem var(--ode-margem) 5.5rem; border-top: 1px solid var(--ode-linha); font-size: 0.875rem; color: var(--ode-apagado); }
+.ode-rodape p { max-width: 44rem; }

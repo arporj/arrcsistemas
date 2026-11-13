@@ -1,0 +1,82 @@
+/* Peças da ARRC que aparecem por cima dos sites de exemplo: barra de versões, esqueleto e aviso de erro. */
+:root {
+  --arrc-fundo: #121414;
+  --arrc-fundo-vidro: rgba(18, 20, 20, 0.86);
+  --arrc-texto: #e2e2e2;
+  --arrc-apagado: #a9a395;
+  --arrc-ouro: #d1c79d;
+  --arrc-linha: rgba(209, 199, 157, 0.28);
+  --arrc-fonte: 'Hanken Grotesk', system-ui, sans-serif;
+  --arrc-z-versoes: 80;
+}
+
+.arrc-versoes {
+  position: fixed; left: 1rem; bottom: 1rem; z-index: var(--arrc-z-versoes);
+  font-family: var(--arrc-fonte); color: var(--arrc-texto); font-size: 0.875rem; line-height: 1.3;
+}
+.arrc-versoes__barra {
+  display: flex; align-items: stretch; border-radius: 999px; overflow: hidden;
+  background: var(--arrc-fundo-vidro); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.7), inset 0 0 0 1px var(--arrc-linha);
+}
+.arrc-versoes__voltar, .arrc-versoes__botao {
+  display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.75rem; padding: 0 0.95rem;
+  color: inherit; background: none; border: 0; font: inherit; cursor: pointer; transition: color 0.2s, background-color 0.2s;
+}
+.arrc-versoes__voltar { border-right: 1px solid var(--arrc-linha); }
+.arrc-versoes__voltar:hover, .arrc-versoes__botao:hover { color: var(--arrc-ouro); background: rgba(209, 199, 157, 0.08); }
+.arrc-versoes__voltar:focus-visible, .arrc-versoes__botao:focus-visible, .arrc-versoes__opcao:focus-visible {
+  outline: 2px solid var(--arrc-ouro); outline-offset: -3px;
+}
+.arrc-versoes__botao { font-weight: 600; }
+.arrc-versoes__rotulo { font-weight: 400; color: var(--arrc-apagado); }
+.arrc-versoes__botao svg { transition: transform 0.2s; }
+.arrc-versoes__seta--fechada { transform: rotate(180deg); }
+
+.arrc-versoes__menu {
+  position: absolute; left: 0; bottom: calc(100% + 0.5rem); width: min(19rem, calc(100vw - 2rem));
+  padding: 0.5rem; border-radius: 1rem; background: var(--arrc-fundo);
+  box-shadow: 0 24px 50px -20px rgba(0, 0, 0, 0.8), inset 0 0 0 1px var(--arrc-linha);
+  animation: arrc-subir 0.18s ease-out;
+}
+.arrc-versoes__titulo { padding: 0.5rem 0.75rem 0.375rem; font-size: 0.75rem; color: var(--arrc-apagado); }
+.arrc-versoes__opcao {
+  display: flex; flex-direction: column; gap: 0.2rem; padding: 0.7rem 0.75rem; border-radius: 0.625rem; color: var(--arrc-texto);
+  transition: background-color 0.15s;
+}
+.arrc-versoes__opcao:hover { background: rgba(209, 199, 157, 0.1); }
+.arrc-versoes__opcao[aria-current='page'] { background: rgba(209, 199, 157, 0.14); }
+.arrc-versoes__nome { display: flex; align-items: center; gap: 0.375rem; font-weight: 600; }
+.arrc-versoes__nome svg { color: var(--arrc-ouro); }
+.arrc-versoes__resumo { font-size: 0.8125rem; color: var(--arrc-apagado); }
+
+@keyframes arrc-subir { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Esqueleto mostrado enquanto o código de uma página carrega */
+.arrc-esqueleto { min-height: 100dvh; padding: 5.5rem clamp(1.25rem, 5vw, 5rem) 3rem; background: var(--esq-fundo, #f4f2ee); }
+.arrc-esqueleto i {
+  display: block; border-radius: 0.5rem; background: var(--esq-bloco, rgba(0, 0, 0, 0.08));
+  animation: arrc-pulsar 1.4s ease-in-out infinite;
+}
+.arrc-esqueleto__topo { height: 1rem; width: 9rem; margin-bottom: 2rem; }
+.arrc-esqueleto__titulo { height: clamp(2.5rem, 7vw, 4.5rem); width: min(42rem, 90%); margin-bottom: 1rem; }
+.arrc-esqueleto__titulo--curto { width: min(28rem, 70%); margin-bottom: 2rem; }
+.arrc-esqueleto__linha { height: 1rem; width: min(34rem, 85%); margin-bottom: 0.75rem; }
+.arrc-esqueleto__foto { height: clamp(14rem, 40vw, 26rem); margin-top: 2.5rem; border-radius: 1rem; }
+.arrc-esqueleto--escuro { --esq-bloco: rgba(255, 255, 255, 0.08); }
+@keyframes arrc-pulsar { 50% { opacity: 0.45; } }
+
+.arrc-erro {
+  min-height: 100dvh; display: grid; place-content: center; gap: 1rem; padding: 2rem; text-align: center;
+  background: var(--arrc-fundo); color: var(--arrc-texto); font-family: var(--arrc-fonte);
+}
+.arrc-erro h1 { font-size: 1.5rem; font-weight: 600; }
+.arrc-erro p { color: var(--arrc-apagado); max-width: 30rem; }
+.arrc-erro button {
+  justify-self: center; min-height: 2.75rem; padding: 0 1.25rem; border-radius: 999px; font-weight: 600;
+  color: var(--arrc-fundo); background: var(--arrc-ouro); border: 0; cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrc-versoes__menu, .arrc-esqueleto i { animation: none; }
+}

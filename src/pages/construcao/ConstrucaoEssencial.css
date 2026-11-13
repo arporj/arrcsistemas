@@ -1,0 +1,66 @@
+.coe {
+  --coe-fundo: #f3f1ea;
+  --coe-branco: #fbfaf6;
+  --coe-tinta: #10203f;
+  --coe-apagado: #4b5873;
+  --coe-azul: #0f2c5e;
+  --coe-azul-forte: #0a1f45;
+  --coe-lapis: #ffc24b;
+  --coe-linha: rgba(16, 32, 63, 0.16);
+  --coe-fonte: 'Space Grotesk', sans-serif;
+  --coe-fonte-dados: 'JetBrains Mono', monospace;
+  --coe-margem: clamp(1.25rem, 5vw, 4.5rem);
+
+  min-height: 100dvh; background: var(--coe-fundo); color: var(--coe-tinta);
+  font-family: var(--coe-fonte); font-size: 1.0625rem; line-height: 1.6;
+}
+.coe a { color: inherit; text-underline-offset: 4px; }
+.coe :focus-visible { outline: 2px solid var(--coe-azul); outline-offset: 3px; }
+.coe h1, .coe h2, .coe h3 { line-height: 1.08; letter-spacing: -0.02em; text-wrap: balance; }
+.coe-pular { position: absolute; left: -999px; top: 0; z-index: 90; padding: 0.75rem 1rem; background: var(--coe-tinta); color: #fff !important; }
+.coe-pular:focus { left: 1rem; top: 1rem; }
+
+.coe-topo { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem var(--coe-margem); background: var(--coe-azul); color: #fff; }
+.coe-marca { font-weight: 700; font-size: 1.375rem; letter-spacing: -0.02em; }
+.coe-marca::before { content: ''; display: inline-block; width: 0.75rem; height: 0.75rem; margin-right: 0.5rem; background: var(--coe-lapis); }
+.coe-topo__fone { display: inline-flex; align-items: center; min-height: 2.75rem; font-family: var(--coe-fonte-dados); font-size: 0.9375rem; text-decoration: none; }
+.coe-topo__fone:hover { color: var(--coe-lapis); }
+
+.coe-abertura { display: grid; gap: clamp(2rem, 5vw, 4rem); align-items: center; padding: clamp(2.5rem, 7vw, 5rem) var(--coe-margem); }
+@media (min-width: 900px) { .coe-abertura { grid-template-columns: 1fr 1fr; } }
+.coe-rotulo { font-family: var(--coe-fonte-dados); font-size: 0.8125rem; color: var(--coe-apagado); margin-bottom: 1rem; }
+.coe-abertura h1 { font-size: clamp(2.5rem, 6vw, 4.25rem); font-weight: 700; margin-bottom: 1.25rem; }
+.coe-abertura__texto > p:not(.coe-rotulo) { max-width: 30rem; color: var(--coe-apagado); margin-bottom: 2rem; }
+.coe-abertura img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+
+.coe-botao {
+  display: inline-flex; align-items: center; min-height: 3rem; padding: 0 1.5rem; border: 0;
+  font: inherit; font-weight: 600; color: #fff; background: var(--coe-azul); cursor: pointer; transition: background-color 0.2s;
+}
+.coe-botao:hover { background: var(--coe-azul-forte); }
+.coe-aviso { display: block; max-width: 30rem; margin-top: 1rem; padding: 0.75rem 1rem; border-left: 3px solid var(--coe-lapis); background: var(--coe-branco); font-size: 0.9375rem; }
+
+.coe-fortes { display: grid; gap: 1px; background: var(--coe-linha); border-block: 1px solid var(--coe-linha); }
+@media (min-width: 760px) { .coe-fortes { grid-template-columns: repeat(3, 1fr); } }
+.coe-fortes > div { padding: 2rem var(--coe-margem); background: var(--coe-fundo); }
+@media (min-width: 760px) { .coe-fortes > div { padding: 2rem; } .coe-fortes > div:first-child { padding-left: var(--coe-margem); } }
+.coe-fortes__valor { font-family: var(--coe-fonte-dados); font-size: 2rem; font-weight: 600; color: var(--coe-azul); }
+.coe-fortes h2 { font-size: 1.125rem; margin: 0.25rem 0 0.375rem; }
+.coe-fortes p:last-child { font-size: 0.9375rem; color: var(--coe-apagado); }
+
+.coe-produtos, .coe-contato { padding: clamp(2.5rem, 6vw, 4.5rem) var(--coe-margem); }
+.coe-produtos h2, .coe-contato h2 { font-size: clamp(1.75rem, 3.5vw, 2.5rem); font-weight: 700; margin-bottom: 2rem; }
+.coe-produtos__grade { display: grid; gap: 2rem; }
+@media (min-width: 640px) { .coe-produtos__grade { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .coe-produtos__grade { grid-template-columns: repeat(4, 1fr); } }
+.coe-produtos h3 { font-family: var(--coe-fonte-dados); font-size: 0.8125rem; font-weight: 500; color: var(--coe-apagado); padding-bottom: 0.5rem; margin-bottom: 0.5rem; border-bottom: 2px solid var(--coe-tinta); }
+.coe-produtos ul { list-style: none; margin: 0; padding: 0; }
+.coe-produtos li { padding: 0.375rem 0; }
+
+.coe-contato { border-top: 1px solid var(--coe-linha); }
+.coe-contato__grade { display: grid; gap: 1.5rem; }
+@media (min-width: 760px) { .coe-contato__grade { grid-template-columns: repeat(3, 1fr); } }
+.coe-contato dl div { display: flex; justify-content: space-between; gap: 1rem; max-width: 17rem; }
+.coe-contato dd { margin: 0; font-weight: 600; }
+
+.coe-rodape { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 1.5rem; padding: 1.5rem var(--coe-margem) 5.5rem; border-top: 1px solid var(--coe-linha); font-size: 0.875rem; color: var(--coe-apagado); }

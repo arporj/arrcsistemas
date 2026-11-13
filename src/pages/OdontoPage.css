@@ -35,11 +35,6 @@
 .od-pular { position: fixed; top: 0.75rem; left: 0.75rem; z-index: var(--od-z-pular); padding: 0.75rem 1rem; border-radius: 999px; background: var(--od-destaque); color: var(--od-branco); transform: translateY(-200%); }
 .od-pular:focus { transform: none; }
 
-.od-voltar {
-  position: fixed; left: 1rem; bottom: 1rem; z-index: var(--od-z-fixos); display: flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0 1.125rem; border-radius: 999px; font-size: 0.875rem; font-weight: 500;
-  background: rgba(255, 255, 255, 0.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--od-sombra), inset 0 0 0 1px var(--od-linha); transition: transform 0.3s var(--od-curva);
-}
-.od-voltar:hover { transform: translateY(-2px); }
 
 .od-rotulo { font-family: var(--od-fonte-serifa); font-style: italic; font-size: 1.5rem; color: var(--od-destaque); margin-bottom: 0.75rem; }
 

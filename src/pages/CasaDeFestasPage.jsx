@@ -2,22 +2,13 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
+import BarraVersoes from '@/components/exemplos/BarraVersoes';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CONVIDADOS_MAXIMO, CONVIDADOS_MINIMO, calcularMontagem } from '@/dominio/festas';
 import { emailValido, irPara } from '@/components/exemplos/utilitarios';
+import { contato, depoimento, eventos, foto } from '@/conteudo/festas';
 import './CasaDeFestasPage.css';
-
-const FOTOS = '/images/exemplos/casa-de-festas';
-
-const foto = {
-  claro: { src: `${FOTOS}/salao-claro.jpg`, alt: 'Salão claro com mesas redondas, cadeiras brancas e lustres' },
-  branca: { src: `${FOTOS}/mesa-branca.jpg`, alt: 'Mesa branca com velas azuis e arranjo de folhas' },
-  menu: { src: `${FOTOS}/menu-velas.jpg`, alt: 'Cardápio impresso sobre prato dourado, com velas flutuantes' },
-  velas: { src: `${FOTOS}/mesa-velas.jpg`, alt: 'Mesa longa de banquete com velas e orquídeas' },
-  luzes: { src: `${FOTOS}/salao-luzes.jpg`, alt: 'Mesa posta com sousplat dourado e flores em salão iluminado' },
-  moderno: { src: `${FOTOS}/salao-moderno.jpg`, alt: 'Salão moderno com lírios, mesas de toalha branca e iluminação de palco' },
-};
 
 const colunas = [
   { fotos: [foto.claro, foto.velas, foto.menu], faixa: ['-3%', '-22%'] },
@@ -27,13 +18,6 @@ const colunas = [
 ];
 
 const REPETICOES_COLUNA = 3;
-
-const eventos = [
-  { id: 'casamento', nome: 'Casamentos', texto: 'Cerimônia e recepção no mesmo lugar, com uma equipe do ensaio ao último brinde.', foto: foto.velas },
-  { id: 'corporativo', nome: 'Corporativo', texto: 'Lançamentos e jantares de empresa, com som, projeção e serviço no horário da pauta.', foto: foto.moderno },
-  { id: 'formatura', nome: 'Formaturas', texto: 'Baile completo, com pista, luz e gastronomia para a família inteira da turma.', foto: foto.luzes },
-  { id: 'aniversario', nome: 'Aniversários', texto: 'Festas particulares com a cara de quem faz aniversário, dos 15 aos 80 anos.', foto: { src: `${FOTOS}/baloes.jpg`, alt: 'Balões coloridos sobre confetes' } },
-];
 
 const formatos = [
   { id: 'banquete', nome: 'Jantar à mesa' },
@@ -338,7 +322,7 @@ const CasaDeFestasPage = () => {
       </Helmet>
 
       <a href="#fe-conteudo" className="fe-pular">Pular para o conteúdo</a>
-      <Link to="/" className="fe-voltar"><ArrowLeft size={16} /> ARRC Sistemas</Link>
+      <BarraVersoes slug="casa-de-festas" nivel="premium" />
 
       <Abertura reduzido={reduzido} />
 
@@ -352,8 +336,8 @@ const CasaDeFestasPage = () => {
             viewport={{ once: true, margin: '-15% 0px' }}
             transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
           >
-            <p>“O serviço foi invisível e impecável. Meus convidados só precisaram aproveitar a festa.”</p>
-            <cite>Família Monteiro</cite>
+            <p>“{depoimento.texto}”</p>
+            <cite>{depoimento.autor}</cite>
           </motion.blockquote>
         </section>
         <Convite form={form} setForm={setForm} />
@@ -362,8 +346,8 @@ const CasaDeFestasPage = () => {
       <footer className="fe-rodape">
         <p className="fe-rodape__marca">Encanto</p>
         <div>
-          <p>Avenida Atlântica, 560, Rio das Ostras, RJ</p>
-          <p><a href="tel:+5522999999999">(22) 99999-9999</a> · <a href="mailto:contato@casadefestasencanto.com.br">contato@casadefestasencanto.com.br</a></p>
+          <p>{contato.endereco}</p>
+          <p><a href={contato.telefoneLink}>{contato.telefone}</a> · <a href={`mailto:${contato.email}`}>{contato.email}</a></p>
           <p>Site de exemplo. A casa, os salões, a agenda, o depoimento e os contatos são fictícios. Fotos: Pexels. <Link to="/">Criado pela ARRC Sistemas</Link>.</p>
         </div>
       </footer>

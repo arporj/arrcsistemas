@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
+import BarraVersoes from '@/components/exemplos/BarraVersoes';
 import {
   animate,
   motion,
@@ -14,20 +15,14 @@ import {
   useTransform,
   useVelocity,
 } from 'framer-motion';
-import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUpRight, Check, Eye, Menu, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ArrowUpRight, Check, Eye, Menu, X } from 'lucide-react';
 import EngrenagensCanvas from '@/components/oficina/EngrenagensCanvas';
 import ArteServico from '@/components/oficina/ArteServico';
 import Torquimetro from '@/components/oficina/Torquimetro';
-import { irPara, mascararTelefone, telefoneValido, useTelaLarga } from '@/components/exemplos/utilitarios';
+import { irPara, mascararTelefone, useTelaLarga } from '@/components/exemplos/utilitarios';
+import { contato, servicos, tiposServico } from '@/conteudo/oficina';
+import { validarOrcamento } from '@/dominio/oficina';
 import './OficinaPage.css';
-
-const servicos = [
-  { n: '01', arte: 'revisao', titulo: 'Revisão completa', texto: 'Olhamos 40 pontos do carro com scanner e seguimos o aperto indicado no manual do fabricante. Você recebe a lista do que está bom e do que precisa de atenção.' },
-  { n: '02', arte: 'freios', titulo: 'Freios', texto: 'Troca de pastilhas, sangria do fluido, retífica de discos e avaliação das pinças, para o pedal voltar a responder como deve.' },
-  { n: '03', arte: 'suspensao', titulo: 'Suspensão e direção', texto: 'Alinhamento 3D, balanceamento e inspeção de amortecedores, buchas e terminais. O carro para de puxar e de bater em lombada.' },
-  { n: '04', arte: 'eletrica', titulo: 'Parte elétrica', texto: 'Diagnóstico eletrônico, reparo de chicotes e teste de bateria, alternador e módulos, para achar a causa da luz acesa no painel.' },
-  { n: '05', arte: 'oleo', titulo: 'Troca de óleo', texto: 'Óleo sintético e filtros originais, com limpeza do motor quando necessária e análise do óleo usado.' },
-];
 
 const laudo = [
   { item: 'Pastilhas dianteiras', leitura: '7,2 mm', situacao: 'Em dia', nivel: 'ok' },
@@ -45,18 +40,9 @@ const numeros = [
   { valor: 15, prefixo: '<', titulo: 'minutos para responder', texto: 'depois que você envia o pedido de orçamento.' },
 ];
 
-const tiposServico = ['Revisão programada', 'Diagnóstico de falha', 'Manutenção corretiva', 'Melhoria de desempenho'];
 const faixaServicos = ['Revisão', 'Freios', 'Suspensão', 'Elétrica', 'Óleo', 'Diagnóstico'];
 const manifesto = 'Mecânico bom não adivinha. Ele mede, mostra a peça e explica o que precisa ser feito agora e o que pode esperar.';
 const formularioVazio = { nome: '', whatsapp: '', veiculo: '', tipo: tiposServico[0], descricao: '' };
-
-const validarFormulario = ({ nome, whatsapp, veiculo }) => {
-  const erros = {};
-  if (nome.trim().length < 2) erros.nome = 'Escreva seu nome para sabermos com quem falar.';
-  if (!telefoneValido(whatsapp)) erros.whatsapp = 'Confira o número: faltam dígitos. Exemplo: (22) 99999-9999.';
-  if (veiculo.trim().length < 2) erros.veiculo = 'Conte qual é o carro. Exemplo: Onix 2019.';
-  return erros;
-};
 
 const moverHolofote = (e) => {
   const r = e.currentTarget.getBoundingClientRect();
@@ -380,16 +366,16 @@ const Orcamento = () => {
     const valor = campo === 'whatsapp' ? mascararTelefone(e.target.value) : e.target.value;
     const novo = { ...form, [campo]: valor };
     setForm(novo);
-    if (erros[campo]) setErros((atuais) => ({ ...atuais, [campo]: validarFormulario(novo)[campo] }));
+    if (erros[campo]) setErros((atuais) => ({ ...atuais, [campo]: validarOrcamento(novo)[campo] }));
   };
 
   const validarCampo = (campo) => () => {
-    setErros((atuais) => ({ ...atuais, [campo]: validarFormulario(form)[campo] }));
+    setErros((atuais) => ({ ...atuais, [campo]: validarOrcamento(form)[campo] }));
   };
 
   const enviar = (e) => {
     e.preventDefault();
-    const encontrados = validarFormulario(form);
+    const encontrados = validarOrcamento(form);
     setErros(encontrados);
     if (Object.keys(encontrados).length === 0) setEnviado(true);
   };
@@ -416,8 +402,8 @@ const Orcamento = () => {
         <h2 className="of-titulo">Conte o que o carro está fazendo.</h2>
         <p>Barulho, luz no painel ou só a revisão em dia: em menos de 15 minutos alguém da oficina responde no seu WhatsApp.</p>
         <address>
-          Rua das Garagens, 1020, Rio das Ostras, RJ<br />
-          <a href="tel:+5522999999999">(22) 99999-9999</a>
+          {contato.endereco}<br />
+          <a href={contato.telefoneLink}>{contato.telefone}</a>
         </address>
       </div>
 
@@ -480,9 +466,7 @@ const OficinaPage = () => {
       <a href="#conteudo" className="of-pular">Pular para o conteúdo</a>
       <div className="of-grao" aria-hidden="true" />
 
-      <Link to="/" className="of-voltar">
-        <ArrowLeft size={16} /> ARRC Sistemas
-      </Link>
+      <BarraVersoes slug="oficina" nivel="premium" />
 
       <Navegacao />
       <Torquimetro />

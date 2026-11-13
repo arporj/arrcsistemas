@@ -2,12 +2,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
+import BarraVersoes from '@/components/exemplos/BarraVersoes';
 import { AnimatePresence, motion, useMotionTemplate, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { ArrowDown, ArrowLeft, ClipboardList, Minus, Plus, X } from 'lucide-react';
+import { ArrowDown, ClipboardList, Minus, Plus, X } from 'lucide-react';
 import CenaObra, { JANELAS_ETAPAS } from '@/components/constrular/CenaObra';
 import Planejador from '@/components/constrular/Planejador';
 import { catalogo } from '@/dominio/construcao';
 import { formatarReais, irPara, mascararTelefone, telefoneValido } from '@/components/exemplos/utilitarios';
+import { contato, fortes } from '@/conteudo/construcao';
 import './ConstrucaoPage.css';
 
 const etapas = [
@@ -15,12 +17,6 @@ const etapas = [
   { nome: 'Alvenaria', titulo: 'Parede sobe no prumo.', itens: ['tijolo'] },
   { nome: 'Cobertura', titulo: 'Telhado antes da chuva.', itens: ['telha'] },
   { nome: 'Acabamento', titulo: 'A parte que todo mundo vê.', itens: ['porcelanato', 'tinta'] },
-];
-
-const fortes = [
-  { valor: '24h', titulo: 'Entrega na obra', texto: 'Para pedidos confirmados até as 15h, na região metropolitana.' },
-  { valor: '2h', titulo: 'Cotação respondida', texto: 'Mande a lista e receba o preço fechado, com frete.' },
-  { valor: 'ISO', titulo: 'Fornecedor conferido', texto: 'Trabalhamos com fabricantes certificados na ISO 9001.' },
 ];
 
 const produto = (id) => catalogo.find((p) => p.id === id);
@@ -264,7 +260,7 @@ const ConstrucaoPage = () => {
       </Helmet>
 
       <a href="#co-conteudo" className="co-pular">Pular para o conteúdo</a>
-      <Link to="/" className="co-voltar"><ArrowLeft size={16} /> ARRC Sistemas</Link>
+      <BarraVersoes slug="construcao" nivel="premium" />
 
       <nav className="co-nav" aria-label="Principal">
         <span className="co-nav__marca">Constrular</span>
@@ -297,8 +293,8 @@ const ConstrucaoPage = () => {
 
       <footer className="co-rodape">
         <p className="co-rotulo">Fale com a loja</p>
-        <a href="tel:08005550199" className="co-rodape__telefone">0800 555 0199</a>
-        <p><a href="mailto:projetos@constrular.ind.br">projetos@constrular.ind.br</a></p>
+        <a href={contato.telefoneLink} className="co-rodape__telefone">{contato.telefone}</a>
+        <p><a href={`mailto:${contato.email}`}>{contato.email}</a></p>
         <p>Site de exemplo. A loja, os preços, os prazos e os contatos são fictícios. Fotos: Pexels. <Link to="/">Criado pela ARRC Sistemas</Link>.</p>
       </footer>
 

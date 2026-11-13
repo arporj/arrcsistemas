@@ -2,20 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Menu, X, ChevronDown, ArrowUpRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { exemplos } from '@/conteudo/exemplos';
+import { useEscolhaVersao } from '@/components/EscolhaVersao';
 
-const exemplos = [
-  { label: 'Padaria do Seu Antônio', to: '/exemplos/padaria' },
-  { label: 'Casa de Festas Encanto', to: '/exemplos/casa-de-festas' },
-  { label: 'Constrular', to: '/exemplos/construcao' },
-  { label: 'Odonto Sorriso Rio', to: '/exemplos/odonto' },
-  { label: 'Auto Center Bom Torque', to: '/exemplos/oficina' },
-];
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { abrir } = useEscolhaVersao();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -73,14 +68,13 @@ const Header = () => {
               sideOffset={5}
             >
               {exemplos.map((ex) => (
-                <DropdownMenu.Item key={ex.to} asChild>
-                  <Link
-                    to={ex.to}
-                    className="flex items-center justify-between px-4 py-3 font-['Hanken_Grotesk'] text-sm text-[#e2e2e2] hover:bg-[#d1c79d]/10 hover:text-[#d1c79d] transition-colors cursor-pointer outline-none"
-                  >
-                    {ex.label}
-                    <ArrowUpRight size={14} />
-                  </Link>
+                <DropdownMenu.Item
+                  key={ex.slug}
+                  onSelect={() => abrir(ex.slug)}
+                  className="flex items-center justify-between gap-4 px-4 py-3 font-['Hanken_Grotesk'] text-sm text-[#e2e2e2] hover:bg-[#d1c79d]/10 hover:text-[#d1c79d] focus:bg-[#d1c79d]/10 focus:text-[#d1c79d] transition-colors cursor-pointer outline-none"
+                >
+                  {ex.nome}
+                  <ArrowUpRight size={14} />
                 </DropdownMenu.Item>
               ))}
             </DropdownMenu.Content>
@@ -122,14 +116,17 @@ const Header = () => {
           <div className="border-t border-[#d1c79d]/10 my-3"></div>
           <p className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-widest text-[#ccc6b8]/60 py-2">Exemplos</p>
           {exemplos.map((ex) => (
-            <Link
-              key={ex.to}
-              to={ex.to}
-              onClick={() => setIsMobileMenuOpen(false)}
+            <button
+              key={ex.slug}
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                abrir(ex.slug);
+              }}
               className="block w-full text-left py-3 font-['Hanken_Grotesk'] text-sm text-[#e2e2e2]"
             >
-              {ex.label}
-            </Link>
+              {ex.nome}
+            </button>
           ))}
         </motion.div>
       )}

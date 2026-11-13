@@ -1,0 +1,60 @@
+.pde {
+  --pde-fundo: #f7f0e3;
+  --pde-papel: #fffaf1;
+  --pde-tinta: #2b1d12;
+  --pde-apagado: #6b5847;
+  --pde-destaque: #9c4221;
+  --pde-destaque-forte: #7e3419;
+  --pde-aberto: #2f6b3a;
+  --pde-linha: rgba(43, 29, 18, 0.18);
+  --pde-fonte-titulo: 'Fraunces', serif;
+  --pde-fonte: 'Hanken Grotesk', sans-serif;
+  --pde-margem: clamp(1.25rem, 5vw, 4rem);
+
+  min-height: 100dvh; background: var(--pde-fundo); color: var(--pde-tinta);
+  font-family: var(--pde-fonte); font-size: 1.0625rem; line-height: 1.6;
+}
+.pde a { color: inherit; }
+.pde :focus-visible { outline: 2px solid var(--pde-destaque); outline-offset: 3px; }
+.pde h1, .pde h2 { font-family: var(--pde-fonte-titulo); font-weight: 500; line-height: 1.05; text-wrap: balance; }
+.pde em { font-style: italic; color: var(--pde-destaque); }
+.pde-pular { position: absolute; left: -999px; top: 0; z-index: 90; padding: 0.75rem 1rem; background: var(--pde-tinta); color: var(--pde-papel) !important; }
+.pde-pular:focus { left: 1rem; top: 1rem; }
+
+.pde-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1.25rem var(--pde-margem); }
+.pde-marca { font-family: var(--pde-fonte-titulo); font-size: 1.375rem; }
+.pde-situacao { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--pde-apagado); }
+.pde-situacao i { width: 0.625rem; height: 0.625rem; border-radius: 999px; background: currentColor; }
+.pde-situacao--aberta { color: var(--pde-aberto); }
+
+.pde-abertura { display: grid; gap: clamp(2rem, 5vw, 4rem); align-items: center; max-width: 72rem; margin: 0 auto; padding: clamp(1.5rem, 5vw, 4rem) var(--pde-margem) clamp(3rem, 7vw, 5rem); }
+@media (min-width: 860px) { .pde-abertura { grid-template-columns: 0.8fr 1fr; } }
+.pde-abertura img { width: 100%; max-height: 34rem; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 999px 999px 0.75rem 0.75rem; }
+.pde-desde { font-size: 0.9375rem; font-weight: 600; letter-spacing: 0.04em; color: var(--pde-apagado); margin-bottom: 1rem; }
+.pde-abertura h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 1.25rem; }
+.pde-abertura h1 + p { max-width: 32rem; color: var(--pde-apagado); margin-bottom: 2rem; }
+
+.pde-botao {
+  display: inline-flex; align-items: center; min-height: 3rem; padding: 0 1.5rem; border: 0; border-radius: 999px;
+  font: inherit; font-weight: 600; color: #fff; background: var(--pde-destaque); cursor: pointer; transition: background-color 0.2s;
+}
+.pde-botao:hover { background: var(--pde-destaque-forte); }
+.pde-aviso { display: block; max-width: 32rem; margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 0.5rem; background: var(--pde-papel); font-size: 0.9375rem; }
+
+.pde-fornadas, .pde-cardapio, .pde-visita { max-width: 72rem; margin: 0 auto; padding: clamp(2.5rem, 6vw, 4rem) var(--pde-margem); border-top: 1px solid var(--pde-linha); }
+.pde h2 { font-size: clamp(1.875rem, 4vw, 2.75rem); margin-bottom: 1.75rem; }
+.pde-fornadas ol { display: flex; flex-wrap: wrap; gap: 0.75rem; list-style: none; margin: 0; padding: 0; }
+.pde-fornadas li { padding: 0.75rem 1.125rem; border-radius: 999px; background: var(--pde-papel); box-shadow: inset 0 0 0 1px var(--pde-linha); }
+.pde-fornadas strong { font-family: var(--pde-fonte-titulo); font-weight: 600; color: var(--pde-destaque); margin-right: 0.375rem; }
+
+.pde-cardapio ul { list-style: none; margin: 0; padding: 0; max-width: 46rem; }
+.pde-cardapio li { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.875rem 0; }
+.pde-cardapio__nome { font-weight: 600; }
+.pde-cardapio__nome small { display: block; font-weight: 400; font-size: 0.875rem; color: var(--pde-apagado); }
+.pde-cardapio__pontos { flex: 1; min-width: 1.5rem; border-bottom: 2px dotted var(--pde-linha); transform: translateY(-0.35rem); }
+.pde-cardapio__preco { font-family: var(--pde-fonte-titulo); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.pde-visita p { font-size: 1.125rem; }
+.pde-visita a { font-weight: 600; text-underline-offset: 4px; }
+
+.pde-rodape { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 1.5rem; max-width: 72rem; margin: 0 auto; padding: 1.5rem var(--pde-margem) 5.5rem; border-top: 1px solid var(--pde-linha); font-size: 0.875rem; color: var(--pde-apagado); }

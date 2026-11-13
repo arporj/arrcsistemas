@@ -1,46 +1,19 @@
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
+import BarraVersoes from '@/components/exemplos/BarraVersoes';
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
-import { ArrowLeft, Clock, MapPin, Minus, Phone, Plus } from 'lucide-react';
+import { Clock, MapPin, Minus, Phone, Plus } from 'lucide-react';
 import Farinha from '@/components/padaria/Farinha';
 import { formatarReais, irPara } from '@/components/exemplos/utilitarios';
+import { ABRE, FECHA, cardapio, contato, depoimento, fornadas } from '@/conteudo/padaria';
+import { ajustarQuantidade, horaEmSaoPaulo, resumirEncomenda, situacaoAgora } from '@/dominio/padaria';
 import './PadariaPage.css';
 
 const HORA_INICIAL = 4;
 const HORA_FINAL = 20;
-const ABRE = 5;
-const FECHA = 20;
-
-const fornadas = [
-  { hora: 5, nome: 'pão de fermentação natural' },
-  { hora: 7, nome: 'pão francês' },
-  { hora: 10, nome: 'broa de milho' },
-  { hora: 15, nome: 'pão de queijo' },
-  { hora: 17, nome: 'pão francês' },
-];
-
-const cardapio = [
-  { id: 'fermentacao', nome: 'Pão de fermentação natural', detalhe: 'Unidade de 800 g, com 24 horas de fermentação', preco: 22 },
-  { id: 'chapa', nome: 'Pão na chapa', detalhe: 'Com manteiga, feito na hora', preco: 5 },
-  { id: 'misto', nome: 'Misto quente', detalhe: 'Presunto e queijo no pão francês', preco: 8 },
-  { id: 'bauru', nome: 'Bauru', detalhe: 'Rosbife, queijo, tomate e picles', preco: 12 },
-  { id: 'acai', nome: 'Açaí na tigela', detalhe: 'Copo de 300 ml', preco: 15 },
-];
-
-const horaEmSaoPaulo = () => Number(new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', hourCycle: 'h23', timeZone: 'America/Sao_Paulo' }).format(new Date()));
-
-const situacaoAgora = (hora) => {
-  const aberto = hora >= ABRE && hora < FECHA;
-  const proxima = fornadas.find((f) => f.hora > hora);
-  return {
-    aberto,
-    texto: proxima
-      ? `Próxima fornada às ${proxima.hora}h: ${proxima.nome}`
-      : `Próxima fornada amanhã às ${fornadas[0].hora}h: ${fornadas[0].nome}`,
-  };
-};
+const itensEncomenda = cardapio.filter((c) => c.encomenda);
 
 const useTemaPorSecao = (raizRef) => {
   const [tema, setTema] = useState('madrugada');
@@ -111,21 +84,15 @@ const Encomenda = () => {
 
   const alterar = (id, delta) => {
     setConfirmada(false);
-    setQuantidades((atuais) => ({ ...atuais, [id]: Math.max(0, Math.min(99, (atuais[id] || 0) + delta)) }));
+    setQuantidades((atuais) => ({ ...atuais, [id]: ajustarQuantidade(atuais[id], delta) }));
   };
 
-  const { total, itens } = useMemo(() => {
-    const escolhidos = cardapio.filter((c) => quantidades[c.id] > 0);
-    return {
-      itens: escolhidos.reduce((soma, c) => soma + quantidades[c.id], 0),
-      total: escolhidos.reduce((soma, c) => soma + quantidades[c.id] * c.preco, 0),
-    };
-  }, [quantidades]);
+  const { total, itens } = resumirEncomenda(itensEncomenda, quantidades);
 
   return (
     <div className="pd-encomenda">
       <ul className="pd-menu">
-        {cardapio.map((c) => {
+        {itensEncomenda.map((c) => {
           const q = quantidades[c.id] || 0;
           return (
             <li key={c.id} className={q > 0 ? 'pd-menu__item pd-menu__item--ativo' : 'pd-menu__item'}>
@@ -187,7 +154,7 @@ const PadariaPage = () => {
       </Helmet>
 
       <a href="#pd-conteudo" className="pd-pular">Pular para o conteúdo</a>
-      <Link to="/" className="pd-voltar"><ArrowLeft size={16} /> ARRC Sistemas</Link>
+      <BarraVersoes slug="padaria" nivel="premium" />
       <RelogioDoDia />
 
       <nav className="pd-nav" aria-label="Principal">
@@ -262,8 +229,8 @@ const PadariaPage = () => {
             <h2>Começou com um forno a lenha, em <em>1980.</em></h2>
             <p>A Padaria do Seu Antônio nasceu pequena, no coração de Rio das Ostras. As receitas continuam as mesmas, e cada massa ainda fermenta o tempo que precisa.</p>
             <blockquote>
-              <p>“O melhor pão na chapa de toda a Região dos Lagos. É o gosto da minha infância.”</p>
-              <cite>Cliente desde 1995</cite>
+              <p>“{depoimento.texto}”</p>
+              <cite>{depoimento.autor}</cite>
             </blockquote>
           </Surgir>
         </section>
@@ -274,9 +241,9 @@ const PadariaPage = () => {
             <h2>Passa <em>aqui.</em></h2>
           </Surgir>
           <div className="pd-visita__dados">
-            <Surgir><MapPin aria-hidden="true" /><h3>Endereço</h3><p>Rua Bonfim, 899<br />Rio das Ostras, RJ</p></Surgir>
+            <Surgir><MapPin aria-hidden="true" /><h3>Endereço</h3><p>{contato.endereco}<br />{contato.cidade}</p></Surgir>
             <Surgir atraso={0.08}><Clock aria-hidden="true" /><h3>Horário</h3><p>Todos os dias<br />das {ABRE}h às {FECHA}h</p></Surgir>
-            <Surgir atraso={0.16}><Phone aria-hidden="true" /><h3>Telefone</h3><p><a href="tel:+5522999999999">(22) 99999-9999</a></p></Surgir>
+            <Surgir atraso={0.16}><Phone aria-hidden="true" /><h3>Telefone</h3><p><a href={contato.telefoneLink}>{contato.telefone}</a></p></Surgir>
           </div>
         </section>
       </main>

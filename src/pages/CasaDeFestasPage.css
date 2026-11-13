@@ -32,12 +32,6 @@
 .fe-pular { position: fixed; top: 0.75rem; left: 0.75rem; z-index: var(--fe-z-pular); padding: 0.75rem 1rem; background: var(--fe-eucalipto); color: var(--fe-papel); transform: translateY(-200%); }
 .fe-pular:focus { transform: none; }
 
-.fe-voltar {
-  position: fixed; left: 1rem; bottom: 1rem; z-index: var(--fe-z-fixos); display: flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0 1.125rem; border-radius: 999px; font-size: 0.875rem;
-  background: rgba(255, 253, 249, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 12px 30px -16px rgba(30, 44, 37, 0.6), inset 0 0 0 1px var(--fe-linha);
-  transition: transform 0.3s var(--fe-curva);
-}
-.fe-voltar:hover { transform: translateY(-2px); }
 
 .fe-sobrelinha { font-size: 0.9375rem; color: var(--fe-eucalipto); margin-bottom: 0.75rem; }
 .fe-secao-topo { max-width: 56rem; margin-bottom: clamp(2rem, 5vw, 3.5rem); }

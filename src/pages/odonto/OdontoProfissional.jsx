@@ -6,7 +6,7 @@ import { MetaVersao, Revelar } from '@/components/exemplos/Demonstracao';
 import { useFormulario } from '@/components/exemplos/useFormulario';
 import { irPara } from '@/components/exemplos/utilitarios';
 import { PERIODOS, contato, depoimentos, perguntas, tratamentos } from '@/conteudo/odonto';
-import { validarContatoAgendamento } from '@/dominio/odonto';
+import { descreverPeriodo, validarContatoAgendamento } from '@/dominio/odonto';
 import './OdontoProfissional.css';
 
 const icones = { clareamento: Sparkles, ortodontia: Smile, implantes: ShieldCheck, limpeza: Stethoscope };
@@ -28,7 +28,7 @@ const Agendamento = () => {
       <div className="odp-pronto" role="status">
         <span className="odp-pronto__icone"><Check size={28} aria-hidden="true" /></span>
         <h3>Tudo certo, {valores.nome.trim().split(' ')[0]}.</h3>
-        <p>Você pediu {valores.tratamento === NAO_SEI ? 'uma avaliação' : valores.tratamento.toLowerCase()}, no período da {valores.periodo.toLowerCase()}. Este é um site de demonstração, então nada foi enviado nem guardado.</p>
+        <p>Você pediu {valores.tratamento === NAO_SEI ? 'uma avaliação' : valores.tratamento.toLowerCase()}, {descreverPeriodo(valores.periodo)}. Este é um site de demonstração, então nada foi enviado nem guardado.</p>
         <button type="button" className="odp-link" onClick={recomecar}>Fazer outro pedido</button>
       </div>
     );

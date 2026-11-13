@@ -26,7 +26,8 @@ export const depoimentos = [
   { nome: 'Juliana R.', texto: 'Da recepção até a cadeira, senti cuidado em cada detalhe. Perdi o medo de voltar.' },
 ];
 
-export const PERIODOS = ['Manhã', 'Tarde', 'Noite'];
+export const QUALQUER_HORARIO = 'Qualquer horário';
+export const PERIODOS = ['Manhã', 'Tarde', 'Noite', QUALQUER_HORARIO];
 
 export const perguntas = [
   { pergunta: 'A primeira consulta tem custo?', resposta: 'A avaliação inicial é gratuita. Nela, o dentista examina, explica o que encontrou e entrega o orçamento por escrito.' },

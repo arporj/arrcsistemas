@@ -8,7 +8,7 @@ import { ArrowRight, Check, Pause, Play } from 'lucide-react';
 import Arcada from '@/components/odonto/Arcada';
 import { irPara, mascararTelefone } from '@/components/exemplos/utilitarios';
 import { PERIODOS, contato, depoimentos, tratamentos } from '@/conteudo/odonto';
-import { validarContatoAgendamento } from '@/dominio/odonto';
+import { descreverPeriodo, validarContatoAgendamento } from '@/dominio/odonto';
 import './OdontoPage.css';
 
 const TEMPO_RESPIRACAO = 4000;
@@ -155,7 +155,7 @@ const Agenda = ({ reduzido }) => {
           <div role="status" className="od-agenda__pronto">
             <span className="od-agenda__ok"><Check size={28} aria-hidden="true" /></span>
             <h2>Tudo certo, {dados.nome.trim().split(' ')[0]}.</h2>
-            <p>Você escolheu {dados.tratamento.toLowerCase()}, no período da {dados.periodo.toLowerCase()}. Este é um site de demonstração, então nada foi enviado nem guardado.</p>
+            <p>Você escolheu {dados.tratamento.toLowerCase()}, {descreverPeriodo(dados.periodo)}. Este é um site de demonstração, então nada foi enviado nem guardado.</p>
             <button type="button" className="od-link" onClick={recomecar}>Começar de novo</button>
           </div>
         ) : (
